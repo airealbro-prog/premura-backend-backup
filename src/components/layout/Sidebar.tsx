@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   BarChart3,
   Building2,
-  User,
   Trophy,
   CalendarDays,
   Settings,
@@ -18,8 +17,7 @@ interface SidebarProps {
 
 const navItems: { view: ViewType; label: string; icon: typeof BarChart3 }[] = [
   { view: "overview", label: "Overview", icon: BarChart3 },
-  { view: "clients", label: "Client View", icon: Building2 },
-  { view: "agents", label: "Agent View", icon: User },
+  { view: "clients", label: "Performance", icon: Building2 },
   { view: "leaderboard", label: "Leaderboard", icon: Trophy },
   { view: "historical", label: "Historical", icon: CalendarDays },
   { view: "settings", label: "Settings", icon: Settings },

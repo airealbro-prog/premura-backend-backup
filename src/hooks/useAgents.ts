@@ -74,7 +74,6 @@ export function useAgents(filters: FilterState) {
           const agents: AgentMetrics[] = Array.from(activeSetters)
             .map((setterName) => {
               const agentAppts = validAppointments.filter((a) => a.setter_name === setterName);
-              const agentLeads = rangeAppointments.filter((a) => a.setter_name === setterName);
               const apptCount = agentAppts.length;
 
               return {
@@ -84,7 +83,6 @@ export function useAgents(filters: FilterState) {
                 appointmentsBooked: apptCount,
                 weeklyAvg: weeklyAverage(apptCount, weeks),
                 achievement: agentAchievement(apptCount, bizDays),
-                totalLeads: agentLeads.length,
               };
             })
             .filter((a) => {

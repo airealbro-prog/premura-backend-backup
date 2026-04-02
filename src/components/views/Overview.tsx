@@ -212,8 +212,10 @@ export function Overview({ dateRange }: OverviewProps) {
           <div className="flex flex-col gap-4">
             {stats.clientSummaries.map((c, i) => (
               <div key={`${c.name}-${i}`} className="flex items-center gap-4">
-                <div className="min-w-[160px]">
-                  <span className="text-sm font-medium text-text-primary">{c.name}</span>
+                <div className="w-[180px] shrink-0">
+                  <span className="text-sm font-medium text-text-primary truncate block" title={c.name}>
+                    {c.name.length > 20 ? c.name.slice(0, 20) + "\u2026" : c.name}
+                  </span>
                 </div>
                 <div className="flex-1">
                   <ProgressBar percentage={c.achievement} />

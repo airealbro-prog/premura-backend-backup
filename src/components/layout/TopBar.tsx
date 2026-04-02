@@ -1,4 +1,5 @@
-import { RefreshCw, X } from "lucide-react";
+import { useRef } from "react";
+import { RefreshCw, X, Calendar } from "lucide-react";
 import type { ViewType, DateRange } from "../../types";
 import { toInputDate } from "../../lib/dateUtils";
 
@@ -12,14 +13,16 @@ interface TopBarProps {
 
 const viewLabels: Record<ViewType, string> = {
   overview: "Overview",
-  clients: "Client Campaign View",
-  agents: "Agent Performance View",
+  clients: "Performance",
   leaderboard: "Leaderboard",
   historical: "Historical Analysis",
   settings: "Settings",
 };
 
 export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange }: TopBarProps) {
+  const fromRef = useRef<HTMLInputElement>(null);
+  const toRef = useRef<HTMLInputElement>(null);
+
   return (
     <header
       className="sticky top-0 z-40 h-14 flex items-center justify-between px-6 border-b border-border-subtle glassmorphism"
@@ -30,10 +33,20 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
 
       <div className="flex items-center gap-4">
         {/* Date Range Pickers */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-text-secondary font-medium">From</label>
-          <div className="relative">
+        <div className="flex items-center gap-3">
+          {/* From date */}
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all duration-200 hover:border-accent-cyan/40"
+            style={{
+              background: "#0f3460",
+              border: "1px solid rgba(0,212,255,0.15)",
+            }}
+            onClick={() => fromRef.current?.showPicker?.()}
+          >
+            <Calendar size={12} className="text-accent-cyan shrink-0" />
+            <span className="text-xs text-text-secondary font-medium">From</span>
             <input
+              ref={fromRef}
               type="date"
               value={toInputDate(dateRange.start)}
               onChange={(e) => {
@@ -43,21 +56,35 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
                   start: val ? new Date(val + "T00:00:00") : null,
                 });
               }}
-              className="px-2 py-1 pr-7 text-xs rounded-md border border-border-subtle bg-bg-surface text-text-primary focus:outline-none focus:border-accent-cyan/40"
+              className="date-picker-dark w-[110px]"
             />
             {dateRange.start && (
               <button
-                onClick={() => onDateRangeChange({ ...dateRange, start: null })}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-accent-cyan p-0.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDateRangeChange({ ...dateRange, start: null });
+                }}
+                className="text-text-secondary hover:text-accent-cyan transition-colors"
                 title="Clear — show all from beginning"
               >
-                <X size={10} />
+                <X size={12} />
               </button>
             )}
           </div>
-          <label className="text-xs text-text-secondary font-medium">To</label>
-          <div className="relative">
+
+          {/* To date */}
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all duration-200 hover:border-accent-cyan/40"
+            style={{
+              background: "#0f3460",
+              border: "1px solid rgba(0,212,255,0.15)",
+            }}
+            onClick={() => toRef.current?.showPicker?.()}
+          >
+            <Calendar size={12} className="text-accent-cyan shrink-0" />
+            <span className="text-xs text-text-secondary font-medium">To</span>
             <input
+              ref={toRef}
               type="date"
               value={toInputDate(dateRange.end)}
               onChange={(e) => {
@@ -67,15 +94,18 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
                   end: val ? new Date(val + "T23:59:59") : null,
                 });
               }}
-              className="px-2 py-1 pr-7 text-xs rounded-md border border-border-subtle bg-bg-surface text-text-primary focus:outline-none focus:border-accent-cyan/40"
+              className="date-picker-dark w-[110px]"
             />
             {dateRange.end && (
               <button
-                onClick={() => onDateRangeChange({ ...dateRange, end: null })}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-accent-cyan p-0.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDateRangeChange({ ...dateRange, end: null });
+                }}
+                className="text-text-secondary hover:text-accent-cyan transition-colors"
                 title="Clear — show all to today"
               >
-                <X size={10} />
+                <X size={12} />
               </button>
             )}
           </div>

@@ -53,7 +53,6 @@ export interface ClientMetrics {
   activeAgents: number;
   totalAppointments: number;
   achievement: number;
-  totalLeads: number;
   agents: AgentMetrics[];
 }
 
@@ -64,7 +63,6 @@ export interface AgentMetrics {
   appointmentsBooked: number;
   weeklyAvg: number;
   achievement: number;
-  totalLeads: number;
 }
 
 export interface LeaderboardEntry {
@@ -92,7 +90,7 @@ export type AchievementTier = "blue" | "green" | "yellow" | "red" | "all";
 
 export type TimeFilter = "week" | "month" | "custom";
 
-export type ViewType = "overview" | "clients" | "agents" | "leaderboard" | "historical" | "settings";
+export type ViewType = "overview" | "clients" | "leaderboard" | "historical" | "settings";
 
 export interface DateRange {
   start: Date | null;

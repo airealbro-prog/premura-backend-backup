@@ -2,8 +2,7 @@ import { useState, useCallback } from "react";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TopBar } from "./components/layout/TopBar";
 import { Overview } from "./components/views/Overview";
-import { ClientView } from "./components/views/ClientView";
-import { AgentView } from "./components/views/AgentView";
+import { PerformanceView } from "./components/views/PerformanceView";
 import { Leaderboard } from "./components/views/Leaderboard";
 import { HistoricalAnalysis } from "./components/views/HistoricalAnalysis";
 import { SettingsView } from "./components/views/SettingsView";
@@ -40,15 +39,7 @@ function App() {
         return <Overview key={refreshKey} dateRange={filters.dateRange} />;
       case "clients":
         return (
-          <ClientView
-            key={refreshKey}
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
-        );
-      case "agents":
-        return (
-          <AgentView
+          <PerformanceView
             key={refreshKey}
             filters={filters}
             onFiltersChange={setFilters}

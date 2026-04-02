@@ -87,7 +87,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
           <div className="card overflow-x-auto">
             {/* Header */}
             <div className="flex items-center border-b border-border-subtle">
-              <div className="min-w-[220px] px-4 py-3 text-xs font-semibold text-text-secondary uppercase">
+              <div className="w-[200px] shrink-0 px-4 py-3 text-xs font-semibold text-text-secondary uppercase">
                 Client / Agent
               </div>
               {periods.map((p, i) => (
@@ -107,14 +107,14 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
                 header={
                   <div className="flex items-center">
                     <div
-                      className="min-w-[200px] py-2 cursor-pointer"
+                      className="w-[180px] shrink-0 py-2 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedClient(row);
                       }}
                     >
-                      <span className="text-sm font-medium text-accent-cyan hover:underline">
-                        {row.companyName}
+                      <span className="text-sm font-medium text-accent-cyan hover:underline truncate block" title={row.companyName}>
+                        {row.companyName.length > 20 ? row.companyName.slice(0, 20) + "\u2026" : row.companyName}
                       </span>
                     </div>
                     {row.cells.map((cell, i) => (
@@ -140,7 +140,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
                 {/* Agent sub-rows */}
                 {row.agents.map((agent) => (
                   <div key={agent.setterName} className="flex items-center border-t border-border-subtle/50">
-                    <div className="min-w-[200px] px-4 py-2 text-sm text-text-secondary">
+                    <div className="w-[180px] shrink-0 px-4 py-2 text-sm text-text-secondary truncate" title={agent.setterName}>
                       {agent.setterName}
                     </div>
                     {agent.cells.map((cell, i) => (

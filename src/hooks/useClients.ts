@@ -74,9 +74,6 @@ export function useClients(filters: FilterState) {
             const agentValidAppts = validAppointments.filter(
               (a) => a.setter_name === setterName
             );
-            const agentAllLeads = rangeAppointments.filter(
-              (a) => a.setter_name === setterName
-            );
             const apptCount = agentValidAppts.length;
 
             return {
@@ -86,7 +83,6 @@ export function useClients(filters: FilterState) {
               appointmentsBooked: apptCount,
               weeklyAvg: weeklyAverage(apptCount, weeks),
               achievement: agentAchievement(apptCount, bizDays),
-              totalLeads: agentAllLeads.length,
             };
           });
 
@@ -115,7 +111,6 @@ export function useClients(filters: FilterState) {
             activeAgents: activeSetters.size,
             totalAppointments: totalValidAppts,
             achievement: clientAchievement(totalValidAppts, client.seats_purchased, bizDays),
-            totalLeads: rangeAppointments.length,
             agents: filteredAgents,
           };
         });
