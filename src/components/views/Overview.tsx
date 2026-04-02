@@ -31,13 +31,26 @@ export function Overview({ dateRange }: OverviewProps) {
     }[],
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
+      setError(null);
       const [clientsRes, appointmentsRes] = await Promise.all([
         supabase.from("clients").select("*"),
         supabase.from("appointments_new").select("*"),
       ]);
+
+      if (clientsRes.error) {
+        console.error("[Overview] clients query error:", clientsRes.error);
+        throw clientsRes.error;
+      }
+      if (appointmentsRes.error) {
+        console.error("[Overview] appointments_new query error:", appointmentsRes.error);
+        throw appointmentsRes.error;
+      }
+
+      console.log(`[Overview] Loaded ${clientsRes.data?.length ?? 0} clients, ${appointmentsRes.data?.length ?? 0} appointments`);
 
       const allClients: Client[] = clientsRes.data ?? [];
       const appointments: Appointment[] = appointmentsRes.data ?? [];
@@ -88,6 +101,10 @@ export function Overview({ dateRange }: OverviewProps) {
         avgAchievement,
         clientSummaries: clientSummaries.sort((a, b) => b.achievement - a.achievement),
       });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[Overview] fetch error:", msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -114,6 +131,11 @@ export function Overview({ dateRange }: OverviewProps) {
 
   return (
     <div className="p-6">
+      {error && (
+        <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <strong>Data loading error:</strong> {error}
+        </div>
+      )}
       {/* Welcome Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold gradient-text mb-1">

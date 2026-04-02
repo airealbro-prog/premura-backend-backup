@@ -22,31 +22,31 @@ create table if not exists clients (
 alter table clients enable row level security;
 alter table appointments_new enable row level security;
 
--- RLS policies for clients table
-create policy "Authenticated users can read clients"
+-- RLS policies for clients table (anon + authenticated)
+create policy "Allow public read access to clients"
   on clients for select
-  to authenticated
+  to anon, authenticated
   using (true);
 
-create policy "Authenticated users can insert clients"
+create policy "Allow public insert access to clients"
   on clients for insert
-  to authenticated
+  to anon, authenticated
   with check (true);
 
-create policy "Authenticated users can update clients"
+create policy "Allow public update access to clients"
   on clients for update
-  to authenticated
+  to anon, authenticated
   using (true);
 
-create policy "Authenticated users can delete clients"
+create policy "Allow public delete access to clients"
   on clients for delete
-  to authenticated
+  to anon, authenticated
   using (true);
 
--- RLS policy for appointments_new table
-create policy "Authenticated users can read appointments_new"
+-- RLS policy for appointments_new table (anon + authenticated)
+create policy "Allow public read access to appointments_new"
   on appointments_new for select
-  to authenticated
+  to anon, authenticated
   using (true);
 
 -- Performance indexes on appointments_new
