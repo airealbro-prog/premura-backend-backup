@@ -1,0 +1,63 @@
+import type { Appointment } from "../types";
+
+/**
+ * Check if a record counts as a valid appointment.
+ * Valid = disposition_date is not null AND dq_reason is null.
+ */
+export function isValidAppointment(record: Appointment): boolean {
+  return record.disposition_date !== null && record.dq_reason === null;
+}
+
+/**
+ * Client Achievement % = (valid appointments) / (seats_purchased x business_days) x 100
+ */
+export function clientAchievement(
+  appointments: number,
+  seatsPurchased: number,
+  businessDays: number
+): number {
+  const target = seatsPurchased * businessDays;
+  if (target === 0) return 0;
+  return (appointments / target) * 100;
+}
+
+/**
+ * Agent Achievement % = (agent's valid appointments) / (business_days) x 100
+ */
+export function agentAchievement(
+  appointments: number,
+  businessDays: number
+): number {
+  if (businessDays === 0) return 0;
+  return (appointments / businessDays) * 100;
+}
+
+/**
+ * Return the color for an achievement percentage tier.
+ */
+export function getAchievementColor(percentage: number): string {
+  if (percentage > 100) return "#00d4ff"; // cyan/blue
+  if (percentage >= 85) return "#22c55e"; // green
+  if (percentage >= 60) return "#eab308"; // yellow
+  return "#ef4444"; // red
+}
+
+/**
+ * Return the tier name for an achievement percentage.
+ */
+export function getAchievementTier(
+  percentage: number
+): "blue" | "green" | "yellow" | "red" {
+  if (percentage > 100) return "blue";
+  if (percentage >= 85) return "green";
+  if (percentage >= 60) return "yellow";
+  return "red";
+}
+
+/**
+ * Calculate weekly average.
+ */
+export function weeklyAverage(appointments: number, elapsedWeeks: number): number {
+  if (elapsedWeeks === 0) return 0;
+  return appointments / elapsedWeeks;
+}
