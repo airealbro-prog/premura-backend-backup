@@ -5,7 +5,8 @@ import {
   agentAchievement,
   weeklyAverage,
 } from "../lib/calculations";
-import { countBusinessDays, getElapsedWeeks } from "../lib/dateUtils";
+import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "../lib/dateUtils";
+import { groupAppointmentsByClient } from "../lib/clientMatch";
 import type { Appointment, Client, AgentMetrics, FilterState } from "../types";
 
 interface AgentsByClient {
@@ -33,10 +34,16 @@ export function useAgents(filters: FilterState) {
       if (appointmentsRes.error) throw appointmentsRes.error;
 
       const allClients: Client[] = clientsRes.data ?? [];
-      const appointments: Appointment[] = appointmentsRes.data ?? [];
-      const { start: rangeStart, end: rangeEnd } = filters.dateRange;
+      const allAppointments: Appointment[] = appointmentsRes.data ?? [];
+
+      const earliest = getEarliestDate(allAppointments);
+      const { start: rangeStart, end: rangeEnd } = getEffectiveDateRange(
+        filters.dateRange.start, filters.dateRange.end, earliest
+      );
       const bizDays = countBusinessDays(rangeStart, rangeEnd);
       const weeks = getElapsedWeeks(rangeStart, rangeEnd);
+
+      const { groups } = groupAppointmentsByClient(allAppointments, allClients);
 
       const result: AgentsByClient[] = allClients
         .filter((c) => {
@@ -46,9 +53,7 @@ export function useAgents(filters: FilterState) {
           return true;
         })
         .map((client) => {
-          const companyAppointments = appointments.filter(
-            (a) => a.company_id === client.company_id
-          );
+          const companyAppointments = groups.get(client.company_id) ?? [];
 
           const rangeAppointments = companyAppointments.filter((a) => {
             if (!a.created_at) return false;
@@ -82,8 +87,6 @@ export function useAgents(filters: FilterState) {
                 totalLeads: agentLeads.length,
               };
             })
-            // Hide agents with zero valid appointments in range
-            .filter((a) => a.appointmentsBooked > 0)
             .filter((a) => {
               if (filters.searchQuery) {
                 return a.setterName.toLowerCase().includes(filters.searchQuery.toLowerCase());

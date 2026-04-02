@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 import type { ViewType, DateRange } from "../../types";
 import { toInputDate } from "../../lib/dateUtils";
 
@@ -32,27 +32,53 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
         {/* Date Range Pickers */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-text-secondary font-medium">From</label>
-          <input
-            type="date"
-            value={toInputDate(dateRange.start)}
-            onChange={(e) => {
-              if (e.target.value) {
-                onDateRangeChange({ ...dateRange, start: new Date(e.target.value + "T00:00:00") });
-              }
-            }}
-            className="px-2 py-1 text-xs rounded-md border border-border-subtle bg-bg-surface text-text-primary focus:outline-none focus:border-accent-cyan/40"
-          />
+          <div className="relative">
+            <input
+              type="date"
+              value={toInputDate(dateRange.start)}
+              onChange={(e) => {
+                const val = e.target.value;
+                onDateRangeChange({
+                  ...dateRange,
+                  start: val ? new Date(val + "T00:00:00") : null,
+                });
+              }}
+              className="px-2 py-1 pr-7 text-xs rounded-md border border-border-subtle bg-bg-surface text-text-primary focus:outline-none focus:border-accent-cyan/40"
+            />
+            {dateRange.start && (
+              <button
+                onClick={() => onDateRangeChange({ ...dateRange, start: null })}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-accent-cyan p-0.5"
+                title="Clear — show all from beginning"
+              >
+                <X size={10} />
+              </button>
+            )}
+          </div>
           <label className="text-xs text-text-secondary font-medium">To</label>
-          <input
-            type="date"
-            value={toInputDate(dateRange.end)}
-            onChange={(e) => {
-              if (e.target.value) {
-                onDateRangeChange({ ...dateRange, end: new Date(e.target.value + "T23:59:59") });
-              }
-            }}
-            className="px-2 py-1 text-xs rounded-md border border-border-subtle bg-bg-surface text-text-primary focus:outline-none focus:border-accent-cyan/40"
-          />
+          <div className="relative">
+            <input
+              type="date"
+              value={toInputDate(dateRange.end)}
+              onChange={(e) => {
+                const val = e.target.value;
+                onDateRangeChange({
+                  ...dateRange,
+                  end: val ? new Date(val + "T23:59:59") : null,
+                });
+              }}
+              className="px-2 py-1 pr-7 text-xs rounded-md border border-border-subtle bg-bg-surface text-text-primary focus:outline-none focus:border-accent-cyan/40"
+            />
+            {dateRange.end && (
+              <button
+                onClick={() => onDateRangeChange({ ...dateRange, end: null })}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-accent-cyan p-0.5"
+                title="Clear — show all to today"
+              >
+                <X size={10} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Live indicator */}

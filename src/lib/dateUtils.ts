@@ -99,7 +99,38 @@ export function getDefaultDateRange(): { start: Date; end: Date } {
 
 /**
  * Format date for HTML date input (YYYY-MM-DD).
+ * Returns empty string if date is null (cleared).
  */
-export function toInputDate(date: Date): string {
+export function toInputDate(date: Date | null): string {
+  if (!date) return "";
   return format(date, "yyyy-MM-dd");
+}
+
+/**
+ * Compute effective start/end dates from a nullable DateRange.
+ * If start is null, uses the earliest created_at from the data.
+ * If end is null, uses today at end-of-day.
+ */
+export function getEffectiveDateRange(
+  start: Date | null,
+  end: Date | null,
+  fallbackEarliestDate?: Date
+): { start: Date; end: Date } {
+  const effectiveEnd = end ?? new Date();
+  const effectiveStart = start ?? fallbackEarliestDate ?? addDays(effectiveEnd, -30);
+  return { start: startOfDay(effectiveStart), end: effectiveEnd };
+}
+
+/**
+ * Find the earliest created_at date from a list of appointments.
+ */
+export function getEarliestDate(records: { created_at: string }[]): Date | undefined {
+  let earliest: Date | undefined;
+  for (const r of records) {
+    if (r.created_at) {
+      const d = new Date(r.created_at);
+      if (!earliest || d < earliest) earliest = d;
+    }
+  }
+  return earliest;
 }

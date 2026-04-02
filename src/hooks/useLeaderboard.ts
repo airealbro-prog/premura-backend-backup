@@ -6,7 +6,8 @@ import {
   agentAchievement,
   weeklyAverage,
 } from "../lib/calculations";
-import { countBusinessDays, getElapsedWeeks } from "../lib/dateUtils";
+import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "../lib/dateUtils";
+import { groupAppointmentsByClient } from "../lib/clientMatch";
 import type {
   Appointment,
   Client,
@@ -52,11 +53,17 @@ export function useLeaderboard(filters: FilterState) {
       if (appointmentsRes.error) throw appointmentsRes.error;
 
       const allClients: Client[] = clientsRes.data ?? [];
-      const appointments: Appointment[] = appointmentsRes.data ?? [];
+      const allAppointments: Appointment[] = appointmentsRes.data ?? [];
 
       const range = getTimeFilterRange(filters.timeFilter, filters.dateRange);
-      const bizDays = countBusinessDays(range.start, range.end);
-      const weeks = getElapsedWeeks(range.start, range.end);
+      const earliest = getEarliestDate(allAppointments);
+      const { start: rangeStart, end: rangeEnd } = getEffectiveDateRange(
+        range.start, range.end, earliest
+      );
+      const bizDays = countBusinessDays(rangeStart, rangeEnd);
+      const weeks = getElapsedWeeks(rangeStart, rangeEnd);
+
+      const { groups } = groupAppointmentsByClient(allAppointments, allClients);
 
       // Client leaderboard
       const clientEntries: LeaderboardEntry[] = allClients
@@ -65,13 +72,13 @@ export function useLeaderboard(filters: FilterState) {
           return true;
         })
         .map((client) => {
-          const valid = appointments.filter(
+          const companyAppts = groups.get(client.company_id) ?? [];
+          const valid = companyAppts.filter(
             (a) =>
-              a.company_id === client.company_id &&
               isValidAppointment(a) &&
               a.created_at &&
-              new Date(a.created_at) >= range.start &&
-              new Date(a.created_at) <= range.end
+              new Date(a.created_at) >= rangeStart &&
+              new Date(a.created_at) <= rangeEnd
           );
 
           return {
@@ -91,14 +98,14 @@ export function useLeaderboard(filters: FilterState) {
       for (const client of allClients) {
         if (filters.selectedClients.length > 0 && !filters.selectedClients.includes(client.company_id)) continue;
 
-        const companyAppts = appointments.filter((a) => a.company_id === client.company_id);
+        const companyAppts = groups.get(client.company_id) ?? [];
 
         // Active setters in range
         const activeSetters = new Set<string>();
         companyAppts.forEach((a) => {
           if (a.setter_name && a.created_at) {
             const d = new Date(a.created_at);
-            if (d >= range.start && d <= range.end) {
+            if (d >= rangeStart && d <= rangeEnd) {
               activeSetters.add(a.setter_name);
             }
           }
@@ -110,8 +117,8 @@ export function useLeaderboard(filters: FilterState) {
               a.setter_name === setter &&
               isValidAppointment(a) &&
               a.created_at &&
-              new Date(a.created_at) >= range.start &&
-              new Date(a.created_at) <= range.end
+              new Date(a.created_at) >= rangeStart &&
+              new Date(a.created_at) <= rangeEnd
           );
 
           if (valid.length === 0) continue;

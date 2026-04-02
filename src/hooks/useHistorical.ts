@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { isValidAppointment, clientAchievement, agentAchievement } from "../lib/calculations";
-import { getBusinessWeeks, getMonthRanges, isInRange, countBusinessDays } from "../lib/dateUtils";
+import { getBusinessWeeks, getMonthRanges, isInRange, countBusinessDays, getEffectiveDateRange, getEarliestDate } from "../lib/dateUtils";
+import { groupAppointmentsByClient } from "../lib/clientMatch";
 import type { Appointment, Client, WeekRange, HistoricalCell, FilterState } from "../types";
 
 export interface HistoricalClientRow {
@@ -37,9 +38,14 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
       if (appointmentsRes.error) throw appointmentsRes.error;
 
       const allClients: Client[] = clientsRes.data ?? [];
-      const appointments: Appointment[] = appointmentsRes.data ?? [];
+      const allAppointments: Appointment[] = appointmentsRes.data ?? [];
 
-      const { start: rangeStart, end: rangeEnd } = filters.dateRange;
+      const earliest = getEarliestDate(allAppointments);
+      const { start: rangeStart, end: rangeEnd } = getEffectiveDateRange(
+        filters.dateRange.start, filters.dateRange.end, earliest
+      );
+
+      const { groups } = groupAppointmentsByClient(allAppointments, allClients);
 
       const timePeriods =
         viewMode === "weekly"
@@ -54,7 +60,7 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
           return true;
         })
         .map((client) => {
-          const companyAppts = appointments.filter((a) => a.company_id === client.company_id);
+          const companyAppts = groups.get(client.company_id) ?? [];
           const validAppts = companyAppts.filter(isValidAppointment);
 
           // Active agents in global date range

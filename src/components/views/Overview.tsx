@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabase";
 import { isValidAppointment, clientAchievement, getAchievementColor } from "../../lib/calculations";
-import { countBusinessDays } from "../../lib/dateUtils";
+import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "../../lib/dateUtils";
+import { groupAppointmentsByClient } from "../../lib/clientMatch";
 import { StatCard } from "../shared/StatCard";
 import { ProgressBar } from "../shared/ProgressBar";
 import type { Appointment, Client, DateRange } from "../../types";
@@ -50,35 +51,62 @@ export function Overview({ dateRange }: OverviewProps) {
         throw appointmentsRes.error;
       }
 
-      console.log(`[Overview] Loaded ${clientsRes.data?.length ?? 0} clients, ${appointmentsRes.data?.length ?? 0} appointments`);
-
       const allClients: Client[] = clientsRes.data ?? [];
-      const appointments: Appointment[] = appointmentsRes.data ?? [];
-      const bizDays = countBusinessDays(dateRange.start, dateRange.end);
+      const allAppointments: Appointment[] = appointmentsRes.data ?? [];
 
+      console.log(`[Overview] Loaded ${allClients.length} clients, ${allAppointments.length} appointments`);
+
+      // Build effective date range (handle null start/end)
+      const earliest = getEarliestDate(allAppointments);
+      const { start: rangeStart, end: rangeEnd } = getEffectiveDateRange(
+        dateRange.start, dateRange.end, earliest
+      );
+      const bizDays = countBusinessDays(rangeStart, rangeEnd);
+
+      // Group appointments by client using company_id + Company Name fallback
+      const { groups, unmatched } = groupAppointmentsByClient(allAppointments, allClients);
+
+      if (unmatched.length > 0) {
+        console.warn(`[Overview] ${unmatched.length} appointments not matched to any client:`);
+        const unmatchedIds = [...new Set(unmatched.map(a => a.company_id))];
+        console.warn("[Overview] Unmatched company_ids:", unmatchedIds);
+        const unmatchedNames = [...new Set(unmatched.map(a => a["Company Name"]).filter(Boolean))];
+        console.warn("[Overview] Unmatched Company Names:", unmatchedNames);
+      }
+
+      // Debug: log matching stats per client
+      for (const client of allClients) {
+        const matched = groups.get(client.company_id) ?? [];
+        console.log(`[Overview] Client "${client.company_name}" (${client.company_id}): ${matched.length} appointments`);
+      }
+
+      // Count ALL appointments and agents globally (not just matched)
+      const allRangeAppts = allAppointments.filter((a) => {
+        if (!a.created_at) return false;
+        const d = new Date(a.created_at);
+        return d >= rangeStart && d <= rangeEnd;
+      });
+      const allValidAppts = allRangeAppts.filter(isValidAppointment);
       const allActiveAgents = new Set<string>();
-      let totalValidAppts = 0;
-      const achievements: number[] = [];
+      allRangeAppts.forEach((a) => {
+        if (a.setter_name) allActiveAgents.add(a.setter_name);
+      });
 
+      console.log(`[Overview] Date range: ${rangeStart.toISOString()} - ${rangeEnd.toISOString()}`);
+      console.log(`[Overview] Appointments in range: ${allRangeAppts.length}, valid: ${allValidAppts.length}, agents: ${allActiveAgents.size}`);
+
+      // Per-client summaries
+      const achievements: number[] = [];
       const clientSummaries = allClients.map((client) => {
-        const companyAppts = appointments.filter((a) => a.company_id === client.company_id);
+        const companyAppts = groups.get(client.company_id) ?? [];
 
         const rangeAppts = companyAppts.filter((a) => {
           if (!a.created_at) return false;
           const d = new Date(a.created_at);
-          return d >= dateRange.start && d <= dateRange.end;
-        });
-
-        // Active agents in range
-        rangeAppts.forEach((a) => {
-          if (a.setter_name) {
-            allActiveAgents.add(a.setter_name);
-          }
+          return d >= rangeStart && d <= rangeEnd;
         });
 
         const validCount = rangeAppts.filter(isValidAppointment).length;
-        totalValidAppts += validCount;
-
         const achievement = clientAchievement(validCount, client.seats_purchased, bizDays);
         achievements.push(achievement);
 
@@ -97,7 +125,7 @@ export function Overview({ dateRange }: OverviewProps) {
       setStats({
         totalClients: allClients.length,
         totalActiveAgents: allActiveAgents.size,
-        totalAppointments: totalValidAppts,
+        totalAppointments: allValidAppts.length,
         avgAchievement,
         clientSummaries: clientSummaries.sort((a, b) => b.achievement - a.achievement),
       });
@@ -182,8 +210,8 @@ export function Overview({ dateRange }: OverviewProps) {
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            {stats.clientSummaries.map((c) => (
-              <div key={c.name} className="flex items-center gap-4">
+            {stats.clientSummaries.map((c, i) => (
+              <div key={`${c.name}-${i}`} className="flex items-center gap-4">
                 <div className="min-w-[160px]">
                   <span className="text-sm font-medium text-text-primary">{c.name}</span>
                 </div>

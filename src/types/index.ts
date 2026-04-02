@@ -95,8 +95,8 @@ export type TimeFilter = "week" | "month" | "custom";
 export type ViewType = "overview" | "clients" | "agents" | "leaderboard" | "historical" | "settings";
 
 export interface DateRange {
-  start: Date;
-  end: Date;
+  start: Date | null;
+  end: Date | null;
 }
 
 export interface FilterState {
