@@ -2,10 +2,11 @@ import type { Appointment } from "../types";
 
 /**
  * Check if a record counts as a valid appointment.
- * Valid = disposition_date is not null AND dq_reason is null.
+ * Valid = created_at exists AND dq_reason is null or empty.
+ * We no longer require disposition_date.
  */
 export function isValidAppointment(record: Appointment): boolean {
-  return record.disposition_date !== null && record.dq_reason === null;
+  return !!record.created_at && (!record.dq_reason || record.dq_reason.trim() === "");
 }
 
 /**

@@ -64,14 +64,14 @@ export function Overview({ dateRange }: OverviewProps) {
         const companyAppts = appointments.filter((a) => a.company_id === client.company_id);
 
         const rangeAppts = companyAppts.filter((a) => {
-          if (!a.disposition_date) return false;
-          const d = new Date(a.disposition_date);
+          if (!a.created_at) return false;
+          const d = new Date(a.created_at);
           return d >= dateRange.start && d <= dateRange.end;
         });
 
         // Active agents in range
         rangeAppts.forEach((a) => {
-          if (a.setter_name && a.disposition_date) {
+          if (a.setter_name) {
             allActiveAgents.add(a.setter_name);
           }
         });

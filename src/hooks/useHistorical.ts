@@ -60,8 +60,8 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
           // Active agents in global date range
           const activeSetters = new Set<string>();
           companyAppts.forEach((a) => {
-            if (a.setter_name && a.disposition_date) {
-              const d = new Date(a.disposition_date);
+            if (a.setter_name && a.created_at) {
+              const d = new Date(a.created_at);
               if (d >= rangeStart && d <= rangeEnd) {
                 activeSetters.add(a.setter_name);
               }
@@ -70,8 +70,8 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
 
           const cells: HistoricalCell[] = timePeriods.map((period) => {
             const count = validAppts.filter((a) => {
-              if (!a.disposition_date) return false;
-              return isInRange(new Date(a.disposition_date), period.start, period.end);
+              if (!a.created_at) return false;
+              return isInRange(new Date(a.created_at), period.start, period.end);
             }).length;
             const periodBizDays = countBusinessDays(period.start, period.end);
             return {
@@ -91,8 +91,8 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
               const agentAppts = validAppts.filter((a) => a.setter_name === setter);
               const agentCells: HistoricalCell[] = timePeriods.map((period) => {
                 const count = agentAppts.filter((a) => {
-                  if (!a.disposition_date) return false;
-                  return isInRange(new Date(a.disposition_date), period.start, period.end);
+                  if (!a.created_at) return false;
+                  return isInRange(new Date(a.created_at), period.start, period.end);
                 }).length;
                 const periodBizDays = countBusinessDays(period.start, period.end);
                 return {

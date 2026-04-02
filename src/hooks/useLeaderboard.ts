@@ -69,9 +69,9 @@ export function useLeaderboard(filters: FilterState) {
             (a) =>
               a.company_id === client.company_id &&
               isValidAppointment(a) &&
-              a.disposition_date &&
-              new Date(a.disposition_date) >= range.start &&
-              new Date(a.disposition_date) <= range.end
+              a.created_at &&
+              new Date(a.created_at) >= range.start &&
+              new Date(a.created_at) <= range.end
           );
 
           return {
@@ -96,8 +96,8 @@ export function useLeaderboard(filters: FilterState) {
         // Active setters in range
         const activeSetters = new Set<string>();
         companyAppts.forEach((a) => {
-          if (a.setter_name && a.disposition_date) {
-            const d = new Date(a.disposition_date);
+          if (a.setter_name && a.created_at) {
+            const d = new Date(a.created_at);
             if (d >= range.start && d <= range.end) {
               activeSetters.add(a.setter_name);
             }
@@ -109,9 +109,9 @@ export function useLeaderboard(filters: FilterState) {
             (a) =>
               a.setter_name === setter &&
               isValidAppointment(a) &&
-              a.disposition_date &&
-              new Date(a.disposition_date) >= range.start &&
-              new Date(a.disposition_date) <= range.end
+              a.created_at &&
+              new Date(a.created_at) >= range.start &&
+              new Date(a.created_at) <= range.end
           );
 
           if (valid.length === 0) continue;

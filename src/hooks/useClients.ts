@@ -45,20 +45,20 @@ export function useClients(filters: FilterState) {
             (a) => a.company_id === client.company_id
           );
 
-          // Filter to date range by disposition_date
+          // Filter to date range by created_at
           const rangeAppointments = companyAppointments.filter((a) => {
-            if (!a.disposition_date) return false;
-            const d = new Date(a.disposition_date);
+            if (!a.created_at) return false;
+            const d = new Date(a.created_at);
             return d >= rangeStart && d <= rangeEnd;
           });
 
           // Valid appointments (not DQ'd) in range
           const validAppointments = rangeAppointments.filter(isValidAppointment);
 
-          // Active agents: distinct setter_names with disposition_date in date range
+          // Active agents: distinct setter_names with appointments in date range
           const activeSetters = new Set<string>();
           rangeAppointments.forEach((a) => {
-            if (a.setter_name && a.disposition_date) {
+            if (a.setter_name) {
               activeSetters.add(a.setter_name);
             }
           });
