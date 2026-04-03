@@ -11,4 +11,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.log("[Supabase] Client initialized for project:", supabaseUrl.replace(/https?:\/\//, "").split(".")[0]);
 }
 
-export const supabase = createClient(supabaseUrl ?? "", supabaseAnonKey ?? "");
+export const supabase = createClient(supabaseUrl ?? "", supabaseAnonKey ?? "", {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});

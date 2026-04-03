@@ -8,8 +8,11 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import type { ViewType } from "@/types";
+import { useAuth } from "@/lib/auth";
+import premuraLogo from "@/assets/premura-logo.svg";
 
 interface SidebarProps {
   activeView: ViewType;
@@ -26,6 +29,7 @@ const navItems: { view: ViewType; label: string; icon: typeof BarChart3 }[] = [
 
 export function Sidebar({ activeView, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { signOut } = useAuth();
 
   return (
     <motion.aside
@@ -34,11 +38,11 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
       className="h-screen sticky top-0 flex flex-col border-r border-border bg-card"
     >
       {/* Logo */}
-      <div className="h-14 flex items-center justify-center px-4 border-b border-border">
+      <div className="h-14 flex items-center justify-center px-4 border-b border-border overflow-hidden">
         {collapsed ? (
-          <span className="gradient-text text-xl font-bold">P</span>
+          <img src={premuraLogo} alt="P" className="h-8 w-8 object-contain object-left" style={{ clipPath: "inset(0 75% 0 0)" }} />
         ) : (
-          <span className="gradient-text text-xl font-bold tracking-wide">Premura</span>
+          <img src={premuraLogo} alt="Premura" className="h-10 w-auto" />
         )}
       </div>
 
@@ -77,6 +81,16 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Logout */}
+      <button
+        onClick={() => signOut()}
+        className="flex items-center gap-3 px-3 py-2.5 mx-2 mb-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all text-left"
+        title={collapsed ? "Sign out" : undefined}
+      >
+        <LogOut size={18} />
+        {!collapsed && <span className="text-sm font-medium">Sign Out</span>}
+      </button>
 
       {/* Collapse */}
       <button
