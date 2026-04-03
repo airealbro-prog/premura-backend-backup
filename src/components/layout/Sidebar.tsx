@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { ViewType } from "@/types";
 import { useAuth } from "@/lib/auth";
-import premuraLogo from "@/assets/premura-logo.png";
+import premuraLogo from "@/assets/PREMURA.PNG";
 
 interface SidebarProps {
   activeView: ViewType;
