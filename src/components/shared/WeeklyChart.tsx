@@ -38,13 +38,7 @@ export function WeeklyChart({ data, height = 250 }: WeeklyChartProps) {
             fontSize: 13,
           }}
         />
-        <Bar dataKey="appointments" fill="url(#barGradient)" radius={[4, 4, 0, 0]} />
-        <defs>
-          <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7b2ff7" />
-            <stop offset="100%" stopColor="#00d4ff" />
-          </linearGradient>
-        </defs>
+        <Bar dataKey="appointments" fill="#00d4ff" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

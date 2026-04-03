@@ -35,7 +35,8 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
     <motion.aside
       animate={{ width: collapsed ? 64 : 220 }}
       transition={{ duration: 0.25, ease: "easeInOut" }}
-      className="h-screen sticky top-0 flex flex-col border-r border-border bg-card"
+      className="h-screen sticky top-0 flex flex-col border-r border-border"
+      style={{ background: "#0f172a" }}
     >
       {/* Logo + brand */}
       <div className="h-14 flex items-center gap-2.5 px-3 border-b border-border overflow-hidden">
@@ -70,7 +71,7 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
                 <motion.div
                   layoutId="sidebar-active"
                   className="absolute inset-0 rounded-md"
-                  style={{ background: "linear-gradient(135deg, rgba(123,47,247,0.25), rgba(0,212,255,0.12))" }}
+                  style={{ background: "rgba(0, 212, 255, 0.12)" }}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
                 />
               )}

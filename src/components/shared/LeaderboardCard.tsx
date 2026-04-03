@@ -12,28 +12,28 @@ function getRankStyle(rank: number) {
   switch (rank) {
     case 1:
       return {
-        gradient: "linear-gradient(135deg, #FFD700, #FFA500)",
+        bg: "#FFD700",
         label: "1st",
         medal: "\u{1F947}",
         shadow: "0 0 20px rgba(255, 215, 0, 0.3)",
       };
     case 2:
       return {
-        gradient: "linear-gradient(135deg, #C0C0C0, #A0A0A0)",
+        bg: "#C0C0C0",
         label: "2nd",
         medal: "\u{1F948}",
         shadow: "0 0 20px rgba(192, 192, 192, 0.3)",
       };
     case 3:
       return {
-        gradient: "linear-gradient(135deg, #CD7F32, #A0522D)",
+        bg: "#CD7F32",
         label: "3rd",
         medal: "\u{1F949}",
         shadow: "0 0 20px rgba(205, 127, 50, 0.3)",
       };
     default:
       return {
-        gradient: "linear-gradient(135deg, #16213e, #0f3460)",
+        bg: "#16213e",
         label: `${rank}th`,
         medal: "",
         shadow: "none",
@@ -61,7 +61,7 @@ export function LeaderboardCard({ entry, isTopThree, showCompany }: LeaderboardC
     >
       <div
         className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
-        style={{ background: rankStyle.gradient }}
+        style={{ background: rankStyle.bg }}
       >
         {isTopThree ? <span className="text-lg">{rankStyle.medal}</span> : entry.rank}
       </div>

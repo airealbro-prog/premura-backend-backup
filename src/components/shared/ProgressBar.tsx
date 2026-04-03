@@ -20,10 +20,7 @@ export function ProgressBar({ percentage, showLabel = true, height = 8 }: Progre
           className="h-full rounded-full progress-animate"
           style={{
             width: `${clampedWidth}%`,
-            background:
-              percentage > 100
-                ? "linear-gradient(90deg, #7b2ff7, #00d4ff)"
-                : `linear-gradient(90deg, ${color}, ${color}cc)`,
+            background: percentage > 100 ? "#00d4ff" : color,
           }}
         />
       </div>

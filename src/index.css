@@ -66,14 +66,11 @@ body {
 
 /* ── Utility classes ── */
 .gradient-text {
-  background: linear-gradient(135deg, #7b2ff7, #00d4ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
 }
 
 .gradient-bg {
-  background: linear-gradient(135deg, #7b2ff7, #00d4ff);
+  background: #00d4ff;
 }
 
 .glass {
