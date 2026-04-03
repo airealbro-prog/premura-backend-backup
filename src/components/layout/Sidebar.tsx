@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { ViewType } from "@/types";
 import { useAuth } from "@/lib/auth";
-import premuraLogo from "@/assets/premura-logo.svg";
+import premuraLogo from "@/assets/premura-logo.png";
 
 interface SidebarProps {
   activeView: ViewType;
@@ -39,11 +39,11 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
     >
       {/* Logo */}
       <div className="h-14 flex items-center justify-center px-4 border-b border-border overflow-hidden">
-        {collapsed ? (
-          <img src={premuraLogo} alt="P" className="h-8 w-8 object-contain object-left" style={{ clipPath: "inset(0 75% 0 0)" }} />
-        ) : (
-          <img src={premuraLogo} alt="Premura" className="h-10 w-auto" />
-        )}
+        <img
+          src={premuraLogo}
+          alt="Premura"
+          className={collapsed ? "h-8 w-8 object-contain" : "h-10 w-auto"}
+        />
       </div>
 
       {/* Nav */}

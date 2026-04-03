@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import premuraLogo from "@/assets/premura-logo.svg";
+import premuraLogo from "@/assets/premura-logo.png";
 
 export function LoginPage() {
   const { signIn } = useAuth();
