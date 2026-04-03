@@ -29,7 +29,7 @@ const navItems: { view: ViewType; label: string; icon: typeof BarChart3 }[] = [
 
 export function Sidebar({ activeView, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <motion.aside
@@ -37,13 +37,18 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
       transition={{ duration: 0.25, ease: "easeInOut" }}
       className="h-screen sticky top-0 flex flex-col border-r border-border bg-card"
     >
-      {/* Logo */}
-      <div className="h-14 flex items-center justify-center px-4 border-b border-border overflow-hidden">
+      {/* Logo + brand */}
+      <div className="h-14 flex items-center gap-2.5 px-3 border-b border-border overflow-hidden">
         <img
           src={premuraLogo}
           alt="Premura"
-          className={collapsed ? "h-8 w-8 object-contain" : "h-10 w-auto"}
+          className="h-9 w-9 object-contain shrink-0"
         />
+        {!collapsed && (
+          <span className="gradient-text text-lg font-bold tracking-wide truncate">
+            Premura
+          </span>
+        )}
       </div>
 
       {/* Nav */}
@@ -71,7 +76,7 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
               )}
               <Icon
                 size={18}
-                className="relative z-10"
+                className="relative z-10 shrink-0"
                 style={isActive ? { color: "#00d4ff" } : undefined}
               />
               {!collapsed && (
@@ -82,15 +87,25 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
         })}
       </nav>
 
-      {/* Logout */}
-      <button
-        onClick={() => signOut()}
-        className="flex items-center gap-3 px-3 py-2.5 mx-2 mb-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all text-left"
-        title={collapsed ? "Sign out" : undefined}
-      >
-        <LogOut size={18} />
-        {!collapsed && <span className="text-sm font-medium">Sign Out</span>}
-      </button>
+      {/* User + Sign Out */}
+      <div className="border-t border-border px-2 py-2 space-y-1">
+        {/* User email */}
+        {!collapsed && user?.email && (
+          <div className="px-3 py-1.5">
+            <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+          </div>
+        )}
+
+        {/* Sign Out button */}
+        <button
+          onClick={() => signOut()}
+          className="flex items-center gap-3 px-3 py-2 rounded-md w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all text-left"
+          title={collapsed ? "Sign out" : undefined}
+        >
+          <LogOut size={18} className="shrink-0" />
+          {!collapsed && <span className="text-sm font-medium">Sign Out</span>}
+        </button>
+      </div>
 
       {/* Collapse */}
       <button

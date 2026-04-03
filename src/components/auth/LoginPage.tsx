@@ -9,7 +9,6 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [forgotMode, setForgotMode] = useState(false);
@@ -18,9 +17,14 @@ export function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error: err } = await signIn(email, password, remember);
-    if (err) setError(err);
-    setLoading(false);
+    try {
+      const { error: err } = await signIn(email, password);
+      if (err) setError(err);
+    } catch {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,7 +62,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
+                className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50"
                 autoComplete="email"
               />
             </div>
@@ -76,7 +80,7 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
+                  className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50"
                   autoComplete="current-password"
                 />
                 <button
@@ -90,17 +94,8 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Remember me + Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="rounded border-border bg-card text-primary focus:ring-primary/50 w-4 h-4 accent-[#00d4ff]"
-                />
-                <span className="text-sm text-muted-foreground">Remember me</span>
-              </label>
+            {/* Forgot Password */}
+            <div className="flex justify-end">
               <button
                 type="button"
                 onClick={() => setForgotMode(!forgotMode)}
@@ -132,11 +127,11 @@ export function LoginPage() {
               </motion.div>
             )}
 
-            {/* Submit */}
+            {/* Submit — cyan background */}
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="w-full py-2.5 rounded-md gradient-bg text-white font-medium text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

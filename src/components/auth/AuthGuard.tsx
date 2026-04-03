@@ -1,10 +1,11 @@
-import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { LoginPage } from "@/components/auth/LoginPage";
 import { Loader2 } from "lucide-react";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
 
+  // Brief loading spinner — auth context guarantees this resolves via try/catch/finally
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -16,8 +17,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // No session → show login page directly (no redirect/router needed)
   if (!session) {
-    return <Navigate to="/login" replace />;
+    return <LoginPage />;
   }
 
   return <>{children}</>;
