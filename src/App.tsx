@@ -1,13 +1,14 @@
 import { useState, useCallback } from "react";
-import { Sidebar } from "./components/layout/Sidebar";
-import { TopBar } from "./components/layout/TopBar";
-import { Overview } from "./components/views/Overview";
-import { PerformanceView } from "./components/views/PerformanceView";
-import { Leaderboard } from "./components/views/Leaderboard";
-import { HistoricalAnalysis } from "./components/views/HistoricalAnalysis";
-import { SettingsView } from "./components/views/SettingsView";
-import { getDefaultDateRange } from "./lib/dateUtils";
-import type { ViewType, FilterState, DateRange } from "./types";
+import { AnimatePresence, motion } from "framer-motion";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { TopBar } from "@/components/layout/TopBar";
+import { Overview } from "@/components/views/Overview";
+import { PerformanceView } from "@/components/views/PerformanceView";
+import { Leaderboard } from "@/components/views/Leaderboard";
+import { HistoricalAnalysis } from "@/components/views/HistoricalAnalysis";
+import { SettingsView } from "@/components/views/SettingsView";
+import { getDefaultDateRange } from "@/lib/dateUtils";
+import type { ViewType, FilterState, DateRange } from "@/types";
 
 const defaultDateRange = getDefaultDateRange();
 
@@ -69,7 +70,7 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-bg-base">
+    <div className="flex min-h-screen bg-background">
       <Sidebar activeView={activeView} onNavigate={setActiveView} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
@@ -79,7 +80,19 @@ function App() {
           dateRange={filters.dateRange}
           onDateRangeChange={handleDateRangeChange}
         />
-        <main className="flex-1 overflow-y-auto">{renderView()}</main>
+        <main className="flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeView}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {renderView()}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   );

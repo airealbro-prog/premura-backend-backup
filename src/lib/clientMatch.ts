@@ -1,4 +1,4 @@
-import type { Appointment, Client } from "../types";
+import type { Appointment, Client } from "@/types";
 
 /**
  * Build a function that resolves which Client an Appointment belongs to.

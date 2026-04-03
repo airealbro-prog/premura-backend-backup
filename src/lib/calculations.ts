@@ -1,4 +1,4 @@
-import type { Appointment } from "../types";
+import type { Appointment } from "@/types";
 
 /**
  * Check if a record counts as a valid appointment.

@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 import {
   isValidAppointment,
   clientAchievement,
   agentAchievement,
   weeklyAverage,
-} from "../lib/calculations";
-import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "../lib/dateUtils";
-import { groupAppointmentsByClient } from "../lib/clientMatch";
+} from "@/lib/calculations";
+import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
+import { groupAppointmentsByClient } from "@/lib/clientMatch";
 import type {
   Appointment,
   Client,
@@ -15,7 +15,7 @@ import type {
   FilterState,
   TimeFilter,
   DateRange,
-} from "../types";
+} from "@/types";
 import { startOfWeek, startOfMonth } from "date-fns";
 
 function getTimeFilterRange(filter: TimeFilter, globalRange: DateRange): DateRange {

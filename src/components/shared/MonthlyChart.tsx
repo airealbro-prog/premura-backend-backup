@@ -17,24 +17,24 @@ export function MonthlyChart({ data, height = 250 }: MonthlyChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
         <XAxis
           dataKey="label"
-          tick={{ fill: "#94a3b8", fontSize: 11 }}
-          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+          tick={{ fill: "#9ca3af", fontSize: 11 }}
+          axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
           tickLine={false}
         />
         <YAxis
-          tick={{ fill: "#94a3b8", fontSize: 11 }}
-          axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+          tick={{ fill: "#9ca3af", fontSize: 11 }}
+          axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
           tickLine={false}
         />
         <Tooltip
           contentStyle={{
-            background: "#0f3460",
-            border: "1px solid rgba(0,212,255,0.3)",
+            background: "#111827",
+            border: "1px solid #1f2937",
             borderRadius: "8px",
-            color: "#e2e8f0",
+            color: "#f9fafb",
             fontSize: 13,
           }}
         />

@@ -1,4 +1,4 @@
-import { getAchievementColor } from "../../lib/calculations";
+import { getAchievementColor } from "@/lib/calculations";
 
 interface AchievementBadgeProps {
   percentage: number;
@@ -18,8 +18,8 @@ export function AchievementBadge({ percentage, size = "md" }: AchievementBadgePr
       className={`inline-flex items-center rounded-full font-semibold tabular-nums ${sizeClasses[size]}`}
       style={{
         color,
-        background: `${color}20`,
-        border: `1px solid ${color}40`,
+        background: `${color}15`,
+        border: `1px solid ${color}30`,
       }}
     >
       {percentage.toFixed(1)}%

@@ -1,19 +1,31 @@
 @import "tailwindcss";
 
+/* ── Design tokens ── */
 @theme {
-  --color-bg-base: #1a1a2e;
-  --color-bg-surface: #16213e;
-  --color-bg-elevated: #0f3460;
-  --color-accent-cyan: #00d4ff;
-  --color-accent-purple: #7b2ff7;
-  --color-text-primary: #e2e8f0;
-  --color-text-secondary: #94a3b8;
-  --color-border-subtle: rgba(0, 212, 255, 0.15);
-  --color-tier-blue: #00d4ff;
-  --color-tier-green: #22c55e;
-  --color-tier-yellow: #eab308;
-  --color-tier-red: #ef4444;
+  --color-background: #0a0a1a;
+  --color-foreground: #f9fafb;
+  --color-card: #111827;
+  --color-card-foreground: #f9fafb;
+  --color-muted: #1f2937;
+  --color-muted-foreground: #9ca3af;
+  --color-border: #1f2937;
+  --color-input: #1f2937;
+  --color-ring: #00d4ff;
+  --color-primary: #00d4ff;
+  --color-primary-foreground: #0a0a1a;
+  --color-secondary: #7b2ff7;
+  --color-secondary-foreground: #f9fafb;
+  --color-accent: #7b2ff7;
+  --color-accent-foreground: #f9fafb;
+  --color-destructive: #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-surface: #111827;
+  --color-elevated: #1a2332;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
 * {
@@ -22,32 +34,37 @@
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-bg-base);
-  color: var(--color-text-primary);
+  font-size: 14px;
+  background: var(--color-background);
+  color: var(--color-foreground);
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
 }
 
+/* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-base);
+  background: var(--color-background);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 255, 0.5);
+  background: rgba(0, 212, 255, 0.4);
 }
 
+/* ── Utility classes ── */
 .gradient-text {
   background: linear-gradient(135deg, #7b2ff7, #00d4ff);
   -webkit-background-clip: text;
@@ -59,34 +76,35 @@ body {
   background: linear-gradient(135deg, #7b2ff7, #00d4ff);
 }
 
-.card {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(123, 47, 247, 0.15);
-  transition: box-shadow 0.3s ease;
+.glass {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(31, 41, 55, 0.8);
 }
 
-.card:hover {
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
-}
-
-.card-elevated {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(123, 47, 247, 0.15);
-}
-
-.glassmorphism {
-  backdrop-filter: blur(10px);
-  background: rgba(26, 26, 46, 0.8);
+.glass-card {
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(31, 41, 55, 0.6);
+  border-radius: var(--radius-md);
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Progress bar animation ── */
+@keyframes progress-fill {
+  from { width: 0; }
+}
+
+.progress-animate {
+  animation: progress-fill 600ms ease-out;
+}
+
+/* ── Live pulse ── */
 .live-pulse {
   animation: pulse-live 2s ease-in-out infinite;
 }
@@ -96,57 +114,86 @@ body {
   50% { opacity: 0.4; }
 }
 
-/* ── Dark-themed date picker ── */
-input[type="date"].date-picker-dark {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+/* ── Radix Popover/Tooltip ── */
+[data-radix-popper-content-wrapper] {
+  z-index: 50 !important;
+}
+
+/* ── Calendar (react-day-picker) dark theme ── */
+.rdp {
+  --rdp-accent-color: #00d4ff;
+  --rdp-background-color: #111827;
+  --rdp-accent-background-color: rgba(0, 212, 255, 0.15);
+  --rdp-day_button-border-radius: 6px;
+  --rdp-selected-border: 2px solid #00d4ff;
+  color: #f9fafb;
+}
+
+.rdp-month_caption {
+  font-weight: 600;
+  font-size: 14px;
+  color: #f9fafb;
+}
+
+.rdp-button_previous,
+.rdp-button_next {
+  color: #9ca3af;
+}
+
+.rdp-button_previous:hover,
+.rdp-button_next:hover {
+  color: #00d4ff;
+}
+
+.rdp-weekday {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.rdp-day button {
+  color: #f9fafb;
+  border-radius: 6px;
+}
+
+.rdp-day button:hover {
+  background: rgba(123, 47, 247, 0.25) !important;
+}
+
+.rdp-day_button {
+  color: #f9fafb !important;
+}
+
+.rdp-day_button:hover {
+  background: rgba(123, 47, 247, 0.25) !important;
+  color: #f9fafb !important;
+}
+
+.rdp-selected .rdp-day_button {
+  background: rgba(0, 212, 255, 0.2) !important;
+  color: #00d4ff !important;
+  font-weight: 600;
+}
+
+.rdp-today .rdp-day_button {
+  border: 1px solid rgba(0, 212, 255, 0.4);
+}
+
+.rdp-outside .rdp-day_button {
+  color: #4b5563 !important;
+}
+
+/* ── Date input dark ── */
+input[type="date"].date-dark {
+  background: var(--color-elevated);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  -webkit-appearance: none;
-  appearance: none;
 }
 
-input[type="date"].date-picker-dark:focus {
-  outline: none;
-  border-color: var(--color-accent-cyan);
-  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2), 0 0 12px rgba(0, 212, 255, 0.15);
-}
-
-input[type="date"].date-picker-dark:hover {
-  border-color: rgba(0, 212, 255, 0.4);
-}
-
-/* Calendar icon color */
-input[type="date"].date-picker-dark::-webkit-calendar-picker-indicator {
+input[type="date"].date-dark::-webkit-calendar-picker-indicator {
   filter: invert(0.7) sepia(1) saturate(5) hue-rotate(175deg);
   cursor: pointer;
-}
-
-/* Style the calendar popup (Chrome/Edge) */
-::-webkit-datetime-edit {
-  color: var(--color-text-primary);
-}
-
-::-webkit-datetime-edit-fields-wrapper {
-  color: var(--color-text-primary);
-}
-
-::-webkit-datetime-edit-text {
-  color: var(--color-text-secondary);
-}
-
-::-webkit-datetime-edit-month-field,
-::-webkit-datetime-edit-day-field,
-::-webkit-datetime-edit-year-field {
-  color: var(--color-text-primary);
-}
-
-/* Empty date placeholder styling */
-input[type="date"].date-picker-dark:invalid,
-input[type="date"].date-picker-dark[value=""] {
-  color: var(--color-text-secondary);
 }

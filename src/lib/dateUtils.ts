@@ -12,7 +12,7 @@ import {
   eachDayOfInterval,
   startOfWeek,
 } from "date-fns";
-import type { WeekRange } from "../types";
+import type { WeekRange } from "@/types";
 
 /**
  * Count business days (Mon-Fri) between two dates, inclusive.

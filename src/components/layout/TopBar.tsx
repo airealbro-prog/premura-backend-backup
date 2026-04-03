@@ -1,7 +1,10 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { RefreshCw, X, Calendar } from "lucide-react";
-import type { ViewType, DateRange } from "../../types";
-import { toInputDate } from "../../lib/dateUtils";
+import { DayPicker } from "react-day-picker";
+import * as Popover from "@radix-ui/react-popover";
+import type { ViewType, DateRange } from "@/types";
+import { toInputDate } from "@/lib/dateUtils";
+import "react-day-picker/style.css";
 
 interface TopBarProps {
   currentView: ViewType;
@@ -19,118 +22,113 @@ const viewLabels: Record<ViewType, string> = {
   settings: "Settings",
 };
 
-export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange }: TopBarProps) {
-  const fromRef = useRef<HTMLInputElement>(null);
-  const toRef = useRef<HTMLInputElement>(null);
+function DatePickerPopover({
+  label,
+  value,
+  onChange,
+  onClear,
+}: {
+  label: string;
+  value: Date | null;
+  onChange: (d: Date) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <header
-      className="sticky top-0 z-40 h-14 flex items-center justify-between px-6 border-b border-border-subtle glassmorphism"
-    >
-      <h1 className="text-lg font-semibold text-text-primary tracking-wide">
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-elevated border border-border text-sm transition-all hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+        >
+          <Calendar size={13} className="text-primary shrink-0" />
+          <span className="text-muted-foreground text-xs font-medium">{label}</span>
+          <span className="text-foreground text-xs tabular-nums">
+            {value ? toInputDate(value) : "All"}
+          </span>
+          {value && (
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onClear();
+              }}
+              className="ml-1 text-muted-foreground hover:text-primary cursor-pointer"
+            >
+              <X size={12} />
+            </span>
+          )}
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          sideOffset={8}
+          align="start"
+          className="z-50 rounded-lg border border-border bg-card p-3 shadow-xl"
+        >
+          <DayPicker
+            mode="single"
+            selected={value ?? undefined}
+            onSelect={(d) => {
+              if (d) {
+                onChange(d);
+                setOpen(false);
+              }
+            }}
+            defaultMonth={value ?? new Date()}
+          />
+          <Popover.Arrow className="fill-border" />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange }: TopBarProps) {
+  return (
+    <header className="sticky top-0 z-40 h-14 flex items-center justify-between px-6 border-b border-border glass">
+      <h1 className="text-base font-semibold text-foreground tracking-wide">
         {viewLabels[currentView]}
       </h1>
 
-      <div className="flex items-center gap-4">
-        {/* Date Range Pickers */}
-        <div className="flex items-center gap-3">
-          {/* From date */}
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all duration-200 hover:border-accent-cyan/40"
-            style={{
-              background: "#0f3460",
-              border: "1px solid rgba(0,212,255,0.15)",
-            }}
-            onClick={() => fromRef.current?.showPicker?.()}
-          >
-            <Calendar size={12} className="text-accent-cyan shrink-0" />
-            <span className="text-xs text-text-secondary font-medium">From</span>
-            <input
-              ref={fromRef}
-              type="date"
-              value={toInputDate(dateRange.start)}
-              onChange={(e) => {
-                const val = e.target.value;
-                onDateRangeChange({
-                  ...dateRange,
-                  start: val ? new Date(val + "T00:00:00") : null,
-                });
-              }}
-              className="date-picker-dark w-[110px]"
-            />
-            {dateRange.start && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDateRangeChange({ ...dateRange, start: null });
-                }}
-                className="text-text-secondary hover:text-accent-cyan transition-colors"
-                title="Clear — show all from beginning"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          {/* To date */}
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all duration-200 hover:border-accent-cyan/40"
-            style={{
-              background: "#0f3460",
-              border: "1px solid rgba(0,212,255,0.15)",
-            }}
-            onClick={() => toRef.current?.showPicker?.()}
-          >
-            <Calendar size={12} className="text-accent-cyan shrink-0" />
-            <span className="text-xs text-text-secondary font-medium">To</span>
-            <input
-              ref={toRef}
-              type="date"
-              value={toInputDate(dateRange.end)}
-              onChange={(e) => {
-                const val = e.target.value;
-                onDateRangeChange({
-                  ...dateRange,
-                  end: val ? new Date(val + "T23:59:59") : null,
-                });
-              }}
-              className="date-picker-dark w-[110px]"
-            />
-            {dateRange.end && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDateRangeChange({ ...dateRange, end: null });
-                }}
-                className="text-text-secondary hover:text-accent-cyan transition-colors"
-                title="Clear — show all to today"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="flex items-center gap-3">
+        {/* Date pickers */}
+        <DatePickerPopover
+          label="From"
+          value={dateRange.start}
+          onChange={(d) => {
+            d.setHours(0, 0, 0, 0);
+            onDateRangeChange({ ...dateRange, start: d });
+          }}
+          onClear={() => onDateRangeChange({ ...dateRange, start: null })}
+        />
+        <DatePickerPopover
+          label="To"
+          value={dateRange.end}
+          onChange={(d) => {
+            d.setHours(23, 59, 59, 999);
+            onDateRangeChange({ ...dateRange, end: d });
+          }}
+          onClear={() => onDateRangeChange({ ...dateRange, end: null })}
+        />
 
         {/* Live indicator */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-2">
           <span
             className="w-2 h-2 rounded-full live-pulse"
-            style={{
-              background: isConnected ? "#00d4ff" : "#ef4444",
-            }}
+            style={{ background: isConnected ? "#00d4ff" : "#ef4444" }}
           />
-          <span className="text-xs text-text-secondary font-medium">
-            {isConnected ? "Live" : "Disconnected"}
+          <span className="text-xs text-muted-foreground font-medium">
+            {isConnected ? "Live" : "Offline"}
           </span>
         </div>
 
         {/* Refresh */}
         <button
           onClick={onRefresh}
-          className="p-2 rounded-lg text-text-secondary hover:text-accent-cyan hover:bg-white/[0.05] transition-all duration-200"
+          className="p-2 rounded-md text-muted-foreground hover:text-primary hover:bg-muted/30 transition-colors"
           title="Refresh data"
         >
-          <RefreshCw size={16} />
+          <RefreshCw size={15} />
         </button>
       </div>
     </header>

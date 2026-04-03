@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 import {
   isValidAppointment,
   clientAchievement,
   agentAchievement,
   weeklyAverage,
-} from "../lib/calculations";
-import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "../lib/dateUtils";
-import { groupAppointmentsByClient } from "../lib/clientMatch";
-import type { Appointment, Client, ClientMetrics, AgentMetrics, FilterState } from "../types";
+} from "@/lib/calculations";
+import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
+import { groupAppointmentsByClient } from "@/lib/clientMatch";
+import type { Appointment, Client, ClientMetrics, AgentMetrics, FilterState } from "@/types";
 
 export function useClients(filters: FilterState) {
   const [clients, setClients] = useState<ClientMetrics[]>([]);

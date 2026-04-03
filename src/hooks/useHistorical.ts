@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
-import { isValidAppointment, clientAchievement, agentAchievement } from "../lib/calculations";
-import { getBusinessWeeks, getMonthRanges, isInRange, countBusinessDays, getEffectiveDateRange, getEarliestDate } from "../lib/dateUtils";
-import { groupAppointmentsByClient } from "../lib/clientMatch";
-import type { Appointment, Client, WeekRange, HistoricalCell, FilterState } from "../types";
+import { supabase } from "@/lib/supabase";
+import { isValidAppointment, clientAchievement, agentAchievement } from "@/lib/calculations";
+import { getBusinessWeeks, getMonthRanges, isInRange, countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
+import { groupAppointmentsByClient } from "@/lib/clientMatch";
+import type { Appointment, Client, WeekRange, HistoricalCell, FilterState } from "@/types";
 
 export interface HistoricalClientRow {
   companyId: string;

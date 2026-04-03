@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../../lib/supabase";
-import { isValidAppointment, clientAchievement, getAchievementColor } from "../../lib/calculations";
-import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "../../lib/dateUtils";
-import { groupAppointmentsByClient } from "../../lib/clientMatch";
-import { StatCard } from "../shared/StatCard";
-import { ProgressBar } from "../shared/ProgressBar";
-import type { Appointment, Client, DateRange } from "../../types";
+import { supabase } from "@/lib/supabase";
+import { isValidAppointment, clientAchievement, getAchievementColor } from "@/lib/calculations";
+import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
+import { groupAppointmentsByClient } from "@/lib/clientMatch";
+import { StatCard } from "@/components/shared/StatCard";
+import { ProgressBar } from "@/components/shared/ProgressBar";
+import { TruncatedName } from "@/components/shared/TruncatedName";
+import type { Appointment, Client, DateRange } from "@/types";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
   Users,
@@ -152,84 +155,102 @@ export function Overview({ dateRange }: OverviewProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-accent-cyan" />
+        <Loader2 size={24} className="animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {error && (
-        <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-          <strong>Data loading error:</strong> {error}
-        </div>
-      )}
-      {/* Welcome Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold gradient-text mb-1">
-          Performance Dashboard
-        </h1>
-        <p className="text-text-secondary text-sm">
-          Real-time overview of all campaigns and agent performance.
-        </p>
-      </div>
-
-      {/* Top Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Active Clients"
-          value={stats.totalClients}
-          icon={<Building2 size={16} className="text-accent-cyan" />}
-        />
-        <StatCard
-          label="Active Agents"
-          value={stats.totalActiveAgents}
-          icon={<Users size={16} className="text-accent-cyan" />}
-        />
-        <StatCard
-          label="Total Appointments"
-          value={stats.totalAppointments}
-          icon={<CalendarCheck size={16} className="text-accent-cyan" />}
-        />
-        <StatCard
-          label="Avg Achievement"
-          value={`${stats.avgAchievement.toFixed(1)}%`}
-          icon={<TrendingUp size={16} className="text-accent-cyan" />}
-          accentColor={getAchievementColor(stats.avgAchievement)}
-        />
-      </div>
-
-      {/* Client Campaign Health */}
-      <div className="card p-5">
-        <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">
-          Campaign Health
-        </h2>
-        {stats.clientSummaries.length === 0 ? (
-          <p className="text-text-secondary text-sm">
-            No campaign data. Add entries to the <code>clients</code> table to get started.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {stats.clientSummaries.map((c, i) => (
-              <div key={`${c.name}-${i}`} className="flex items-center gap-4">
-                <div className="w-[180px] shrink-0">
-                  <span className="text-sm font-medium text-text-primary truncate block" title={c.name}>
-                    {c.name.length > 20 ? c.name.slice(0, 20) + "\u2026" : c.name}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <ProgressBar percentage={c.achievement} />
-                </div>
-                <div className="min-w-[80px] text-right">
-                  <span className="text-xs text-text-secondary">
-                    {c.appointments} appts / {c.seats} seats
-                  </span>
-                </div>
-              </div>
-            ))}
+    <TooltipProvider>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="p-6"
+      >
+        {error && (
+          <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+            <strong>Data loading error:</strong> {error}
           </div>
         )}
-      </div>
-    </div>
+
+        {/* Welcome Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold gradient-text mb-1">
+            Performance Dashboard
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Real-time overview of all campaigns and agent performance.
+          </p>
+        </div>
+
+        {/* Top Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            label="Active Clients"
+            value={stats.totalClients}
+            icon={<Building2 size={16} className="text-primary" />}
+          />
+          <StatCard
+            label="Active Agents"
+            value={stats.totalActiveAgents}
+            icon={<Users size={16} className="text-primary" />}
+          />
+          <StatCard
+            label="Total Appointments"
+            value={stats.totalAppointments}
+            icon={<CalendarCheck size={16} className="text-primary" />}
+          />
+          <StatCard
+            label="Avg Achievement"
+            value={`${stats.avgAchievement.toFixed(1)}%`}
+            icon={<TrendingUp size={16} className="text-primary" />}
+            accentColor={getAchievementColor(stats.avgAchievement)}
+          />
+        </div>
+
+        {/* Client Campaign Health */}
+        <div className="glass-card p-5">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+            Campaign Health
+          </h2>
+          <AnimatePresence>
+            {stats.clientSummaries.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No campaign data. Add entries to the <code>clients</code> table to get started.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {stats.clientSummaries.map((c, i) => (
+                  <motion.div
+                    key={`${c.name}-${i}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15, delay: i * 0.03 }}
+                    className="flex items-center gap-4"
+                  >
+                    <div className="w-[180px] shrink-0">
+                      <TruncatedName
+                        name={c.name}
+                        maxLen={20}
+                        className="text-sm font-medium text-foreground"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <ProgressBar percentage={c.achievement} />
+                    </div>
+                    <div className="min-w-[80px] text-right">
+                      <span className="text-xs text-muted-foreground">
+                        {c.appointments} appts / {c.seats} seats
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </TooltipProvider>
   );
 }
