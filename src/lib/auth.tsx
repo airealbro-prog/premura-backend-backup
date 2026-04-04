@@ -68,12 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRole = useCallback(async (userId: string) => {
     try {
-      // Use .maybeSingle() instead of .single() to avoid errors when row doesn't exist
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role, company_id, permissions")
-        .eq("user_id", userId)
+      const result = await supabase
+        .rpc("get_user_role", { p_user_id: userId })
         .maybeSingle();
+      const error = result.error;
+      const data = result.data as { role: UserRole["role"]; company_id: string | null; permissions: Record<string, unknown> } | null;
 
       if (error) {
         console.error("[Auth] user_roles query error:", error.message, error.details, error.hint, { userId });
