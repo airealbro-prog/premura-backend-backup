@@ -103,7 +103,8 @@ export interface DateRange {
 export interface FrontendMetric {
   id: string;
   "Lead Name": string | null;
-  "Date": string | null;
+  "Booked For": string | null;
+  "Created At": string | null;
   "Campaign Name": string | null;
   "Closer": string | null;
   "Phone Number": string | null;

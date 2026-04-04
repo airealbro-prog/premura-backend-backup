@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabaseFrontend } from "@/lib/supabaseFrontend";
 import type { FrontendMetric, DateRange } from "@/types";
 import { motion } from "framer-motion";
 import { Loader2, Phone, User, Megaphone, Calendar } from "lucide-react";
@@ -81,7 +81,7 @@ export function FrontendPipeline({ dateRange }: FrontendPipelineProps) {
 
   const fetchData = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from("frontend_metrics").select("*");
+      const { data, error } = await supabaseFrontend.from("Frontend Metrics").select("*");
       if (error) throw error;
       setMetrics((data as FrontendMetric[]) ?? []);
     } catch (err) {
@@ -96,7 +96,7 @@ export function FrontendPipeline({ dateRange }: FrontendPipelineProps) {
   // Filter by date
   const filtered = useMemo(() => {
     return metrics.filter((m) => {
-      const raw = m["Date"];
+      const raw = m["Created At"];
       if (!raw) return true;
       try {
         const d = new Date(raw);
@@ -233,7 +233,7 @@ export function FrontendPipeline({ dateRange }: FrontendPipelineProps) {
                       <td className="px-4 py-2.5">
                         <span className="flex items-center gap-1.5 text-muted-foreground">
                           <Calendar size={12} />
-                          {formatDate(lead["Date"])}
+                          {formatDate(lead["Booked For"])}
                         </span>
                       </td>
                       <td className="px-4 py-2.5">

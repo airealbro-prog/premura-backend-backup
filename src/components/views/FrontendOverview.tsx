@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabaseFrontend } from "@/lib/supabaseFrontend";
 import { StatCard } from "@/components/shared/StatCard";
 import type { FrontendMetric, DateRange } from "@/types";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -94,7 +94,7 @@ export function FrontendOverview({ dateRange }: FrontendOverviewProps) {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const { data, error: err } = await supabase.from("frontend_metrics").select("*");
+      const { data, error: err } = await supabaseFrontend.from("Frontend Metrics").select("*");
       if (err) throw err;
       setMetrics((data as FrontendMetric[]) ?? []);
     } catch (err) {
@@ -109,7 +109,7 @@ export function FrontendOverview({ dateRange }: FrontendOverviewProps) {
   // Filter by date range
   const filtered = useMemo(() => {
     return metrics.filter((m) => {
-      const raw = m["Date"];
+      const raw = m["Created At"];
       if (!raw) return true;
       try {
         const d = new Date(raw);

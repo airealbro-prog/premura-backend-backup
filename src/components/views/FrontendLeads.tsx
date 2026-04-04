@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabaseFrontend } from "@/lib/supabaseFrontend";
 import type { FrontendMetric, DateRange } from "@/types";
 // Date filtering uses raw comparison from dateRange prop
 import {
@@ -25,7 +25,8 @@ interface ColumnDef {
 
 const ALL_COLUMNS: ColumnDef[] = [
   { key: "Lead Name", label: "Lead Name", defaultVisible: true },
-  { key: "Date", label: "Date", defaultVisible: true },
+  { key: "Booked For", label: "Booked For", defaultVisible: true },
+  { key: "Created At", label: "Created At", defaultVisible: false },
   { key: "Campaign Name", label: "Campaign", defaultVisible: true },
   { key: "Status / Stage in Pipeline", label: "Status", defaultVisible: true },
   { key: "Phone Number", label: "Phone", defaultVisible: true },
@@ -124,7 +125,7 @@ export function FrontendLeads({ dateRange }: FrontendLeadsProps) {
 
   const fetchData = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from("frontend_metrics").select("*");
+      const { data, error } = await supabaseFrontend.from("Frontend Metrics").select("*");
       if (error) throw error;
       setMetrics((data as FrontendMetric[]) ?? []);
     } catch (err) {
@@ -139,7 +140,7 @@ export function FrontendLeads({ dateRange }: FrontendLeadsProps) {
   // Filter by date
   const filteredByDate = useMemo(() => {
     return metrics.filter((m) => {
-      const raw = m["Date"];
+      const raw = m["Created At"];
       if (!raw) return true;
       try {
         const d = new Date(raw);
@@ -226,7 +227,8 @@ export function FrontendLeads({ dateRange }: FrontendLeadsProps) {
         return <span className="font-medium text-foreground">{str || "—"}</span>;
       }
 
-      case "Date":
+      case "Booked For":
+      case "Created At":
       case "Date Appointment Booked":
         return <span>{formatDate(str || null)}</span>;
 
