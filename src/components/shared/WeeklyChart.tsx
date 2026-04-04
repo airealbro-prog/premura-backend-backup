@@ -38,7 +38,7 @@ export function WeeklyChart({ data, height = 250 }: WeeklyChartProps) {
             fontSize: 13,
           }}
         />
-        <Bar dataKey="appointments" fill="#00d4ff" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="appointments" fill="#8851F4" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

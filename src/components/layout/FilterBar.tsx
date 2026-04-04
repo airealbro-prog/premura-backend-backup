@@ -12,10 +12,9 @@ interface FilterBarProps {
 
 const tierOptions: { value: AchievementTier; label: string; color: string }[] = [
   { value: "all", label: "All", color: "#9ca3af" },
-  { value: "blue", label: ">100%", color: "#00d4ff" },
-  { value: "green", label: "85–100%", color: "#22c55e" },
-  { value: "yellow", label: "60–84%", color: "#eab308" },
-  { value: "red", label: "<60%", color: "#ef4444" },
+  { value: "blue", label: "60%+", color: "#3b82f6" },
+  { value: "orange", label: "30–59%", color: "#f59e0b" },
+  { value: "red", label: "<30%", color: "#ef4444" },
 ];
 
 export function FilterBar({

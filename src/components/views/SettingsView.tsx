@@ -425,7 +425,7 @@ export function SettingsView() {
                       onClick={() => openModal(client)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md transition-colors ${
                         userCount > 0
-                          ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                          ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
                           : "bg-primary/10 text-primary hover:bg-primary/20"
                       }`}
                       title="Manage client access"
@@ -698,8 +698,8 @@ export function SettingsView() {
                         const met = validatePassword(formPassword)[rule.key];
                         return (
                           <div key={rule.key} className="flex items-center gap-1.5">
-                            <Check size={12} className={met ? "text-green-400" : "text-muted-foreground/40"} />
-                            <span className={`text-xs ${met ? "text-green-400" : "text-muted-foreground/60"}`}>
+                            <Check size={12} className={met ? "text-blue-400" : "text-muted-foreground/40"} />
+                            <span className={`text-xs ${met ? "text-blue-400" : "text-muted-foreground/60"}`}>
                               {rule.label}
                             </span>
                           </div>

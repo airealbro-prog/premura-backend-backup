@@ -41,10 +41,10 @@ export function MonthlyChart({ data, height = 250 }: MonthlyChartProps) {
         <Line
           type="monotone"
           dataKey="appointments"
-          stroke="#00d4ff"
+          stroke="#8851F4"
           strokeWidth={2}
-          dot={{ fill: "#7b2ff7", stroke: "#00d4ff", strokeWidth: 2, r: 4 }}
-          activeDot={{ r: 6, fill: "#00d4ff" }}
+          dot={{ fill: "#6b3cc7", stroke: "#8851F4", strokeWidth: 2, r: 4 }}
+          activeDot={{ r: 6, fill: "#8851F4" }}
         />
       </LineChart>
     </ResponsiveContainer>

@@ -34,20 +34,20 @@ interface OverviewProps {
   dateRange: DateRange;
 }
 
-// Chart colors
+// Chart colors — 4-color palette: Purple #8851F4, Blue #3b82f6, Orange #f59e0b, Red #ef4444
 const ROOF_COLORS: Record<string, string> = {
-  Shingles: "#0ea5e9",
-  Shingle: "#0ea5e9",
+  Shingles: "#8851F4",
+  Shingle: "#8851F4",
   Tiles: "#f59e0b",
   Tile: "#f59e0b",
-  Flat: "#ef4444",
+  Flat: "#3b82f6",
 };
-const OTHER_COLOR = "#6b7280";
+const OTHER_COLOR = "#94a3b8";
 const YES_COLOR = "#f59e0b";
-const NO_COLOR = "#22c55e";
-const CREDIT_COLORS = ["#ef4444", "#f59e0b", "#eab308", "#22c55e", "#0ea5e9"];
-const BAR_COLOR = "#0ea5e9";
-const APPT_TYPE_COLORS = ["#0ea5e9", "#a855f7", "#6b7280"];
+const NO_COLOR = "#3b82f6";
+const CREDIT_BAR_COLOR = "#8851F4";
+const DQ_BAR_COLOR = "#ef4444";
+const APPT_TYPE_COLORS = ["#8851F4", "#3b82f6", "#94a3b8"];
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -517,11 +517,7 @@ export function Overview({ dateRange }: OverviewProps) {
                     contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 }}
                     itemStyle={{ color: "#f1f5f9" }}
                   />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {creditScoreData.map((_, i) => (
-                      <Cell key={i} fill={CREDIT_COLORS[i]} />
-                    ))}
-                  </Bar>
+                  <Bar dataKey="count" fill={CREDIT_BAR_COLOR} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -541,7 +537,7 @@ export function Overview({ dateRange }: OverviewProps) {
                       contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 12 }}
                       itemStyle={{ color: "#f1f5f9" }}
                     />
-                    <Bar dataKey="count" fill={BAR_COLOR} radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="count" fill={DQ_BAR_COLOR} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

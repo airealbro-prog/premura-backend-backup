@@ -105,10 +105,9 @@ export function useAgents(filters: FilterState) {
               if (filters.achievementTier === "all") return true;
               const pct = a.achievement;
               switch (filters.achievementTier) {
-                case "blue": return pct > 100;
-                case "green": return pct >= 85 && pct <= 100;
-                case "yellow": return pct >= 60 && pct < 85;
-                case "red": return pct < 60;
+                case "blue": return pct >= 60;
+                case "orange": return pct >= 30 && pct < 60;
+                case "red": return pct < 30;
                 default: return true;
               }
             });

@@ -37,10 +37,9 @@ export function agentAchievement(
  * Return the color for an achievement percentage tier.
  */
 export function getAchievementColor(percentage: number): string {
-  if (percentage > 100) return "#00d4ff"; // cyan/blue
-  if (percentage >= 85) return "#22c55e"; // green
-  if (percentage >= 60) return "#eab308"; // yellow
-  return "#ef4444"; // red
+  if (percentage >= 60) return "#3b82f6"; // blue — good
+  if (percentage >= 30) return "#f59e0b"; // orange — mediocre
+  return "#ef4444"; // red — bad
 }
 
 /**
@@ -48,10 +47,9 @@ export function getAchievementColor(percentage: number): string {
  */
 export function getAchievementTier(
   percentage: number
-): "blue" | "green" | "yellow" | "red" {
-  if (percentage > 100) return "blue";
-  if (percentage >= 85) return "green";
-  if (percentage >= 60) return "yellow";
+): "blue" | "orange" | "red" {
+  if (percentage >= 60) return "blue";
+  if (percentage >= 30) return "orange";
   return "red";
 }
 

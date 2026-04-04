@@ -79,8 +79,8 @@ function PasswordValidationChecklist({ password }: { password: string }) {
         const met = validatePassword(password)[rule.key];
         return (
           <div key={rule.key} className="flex items-center gap-1.5">
-            <Check size={12} className={met ? "text-green-400" : "text-muted-foreground/40"} />
-            <span className={`text-xs ${met ? "text-green-400" : "text-muted-foreground/60"}`}>
+            <Check size={12} className={met ? "text-blue-400" : "text-muted-foreground/40"} />
+            <span className={`text-xs ${met ? "text-blue-400" : "text-muted-foreground/60"}`}>
               {rule.label}
             </span>
           </div>
@@ -594,7 +594,7 @@ export function EmployeeManagement() {
                       type="button"
                       onClick={handleResetPassword}
                       disabled={resetSending || !resetPassword || !isPasswordValid(resetPassword)}
-                      className="flex-1 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="flex-1 py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {resetSending ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
                       Update Password
@@ -742,7 +742,7 @@ export function EmployeeManagement() {
               {editingEmployee && (
                 <div className="border-t border-border pt-4 mt-2">
                   {removeWarning && (
-                    <div className="rounded-md bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-400 mb-3 flex items-start gap-2">
+                    <div className="rounded-md bg-orange-500/10 border border-orange-500/30 px-3 py-2 text-xs text-orange-400 mb-3 flex items-start gap-2">
                       <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                       {removeWarning}
                     </div>

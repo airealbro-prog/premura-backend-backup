@@ -116,7 +116,7 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
         <div className="flex items-center gap-2 ml-2">
           <span
             className="w-2 h-2 rounded-full live-pulse"
-            style={{ background: isConnected ? "#00d4ff" : "#ef4444" }}
+            style={{ background: isConnected ? "#8851F4" : "#ef4444" }}
           />
           <span className="text-xs text-muted-foreground font-medium">
             {isConnected ? "Live" : "Offline"}

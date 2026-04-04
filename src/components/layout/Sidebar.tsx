@@ -83,14 +83,14 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
                 <motion.div
                   layoutId="sidebar-active"
                   className="absolute inset-0 rounded-md"
-                  style={{ background: "rgba(0, 212, 255, 0.12)" }}
+                  style={{ background: "rgba(136, 81, 244, 0.15)" }}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
                 />
               )}
               <Icon
                 size={18}
                 className="relative z-10 shrink-0"
-                style={isActive ? { color: "#00d4ff" } : undefined}
+                style={isActive ? { color: "#8851F4" } : undefined}
               />
               {!collapsed && (
                 <span className="relative z-10 text-sm font-medium truncate">{label}</span>

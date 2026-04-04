@@ -127,7 +127,7 @@ export function LoginPage() {
               </motion.div>
             )}
 
-            {/* Submit — cyan background */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading || !email || !password}

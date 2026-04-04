@@ -103,10 +103,9 @@ export function useClients(filters: FilterState) {
               : agents.filter((a) => {
                   const pct = a.achievement;
                   switch (filters.achievementTier) {
-                    case "blue": return pct > 100;
-                    case "green": return pct >= 85 && pct <= 100;
-                    case "yellow": return pct >= 60 && pct < 85;
-                    case "red": return pct < 60;
+                    case "blue": return pct >= 60;
+                    case "orange": return pct >= 30 && pct < 60;
+                    case "red": return pct < 30;
                     default: return true;
                   }
                 });
@@ -139,10 +138,9 @@ export function useClients(filters: FilterState) {
           : filtered.filter((c) => {
               const pct = c.achievement;
               switch (filters.achievementTier) {
-                case "blue": return pct > 100;
-                case "green": return pct >= 85 && pct <= 100;
-                case "yellow": return pct >= 60 && pct < 85;
-                case "red": return pct < 60;
+                case "blue": return pct >= 60;
+                case "orange": return pct >= 30 && pct < 60;
+                case "red": return pct < 30;
                 default: return true;
               }
             });

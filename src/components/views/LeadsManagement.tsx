@@ -59,7 +59,7 @@ function CopyButton({ text }: { text: string }) {
       className="p-1 rounded hover:bg-muted/30 text-muted-foreground hover:text-primary transition-colors inline-flex"
       title="Copy"
     >
-      {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+      {copied ? <Check size={12} className="text-blue-400" /> : <Copy size={12} />}
     </button>
   );
 }
@@ -423,7 +423,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
         const isSolar = str.toLowerCase() === "yes" || str.toLowerCase() === "true";
         return (
           <span className={`text-xs px-2 py-0.5 rounded-full ${
-            isSolar ? "bg-amber-500/10 text-amber-400" : "bg-green-500/10 text-green-400"
+            isSolar ? "bg-orange-500/10 text-orange-400" : "bg-blue-500/10 text-blue-400"
           }`}>
             {isSolar ? "Yes" : "No"}
           </span>

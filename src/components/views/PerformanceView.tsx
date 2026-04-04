@@ -66,7 +66,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
               className="absolute top-1 bottom-1 rounded-full"
               style={{
                 width: "calc(50% - 4px)",
-                background: "#00d4ff",
+                background: "#8851F4",
               }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
               animate={{
@@ -212,7 +212,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
                       <span
                         className="inline-block px-4 py-1.5 rounded-lg text-sm font-semibold text-white"
                         style={{
-                          background: "rgba(0, 212, 255, 0.15)",
+                          background: "rgba(136, 81, 244, 0.15)",
                         }}
                       >
                         <TruncatedName name={group.companyName} maxLen={20} />

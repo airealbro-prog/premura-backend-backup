@@ -86,7 +86,7 @@ export interface HistoricalCell {
   achievement: number;
 }
 
-export type AchievementTier = "blue" | "green" | "yellow" | "red" | "all";
+export type AchievementTier = "blue" | "orange" | "red" | "all";
 
 export type TimeFilter = "week" | "month" | "custom";
 
