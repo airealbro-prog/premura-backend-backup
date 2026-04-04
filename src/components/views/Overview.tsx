@@ -6,7 +6,6 @@ import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
 import { StatCard } from "@/components/shared/StatCard";
 import { ProgressBar } from "@/components/shared/ProgressBar";
-import { TruncatedName } from "@/components/shared/TruncatedName";
 import type { Appointment, Client, DateRange } from "@/types";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
@@ -297,7 +296,7 @@ export function Overview({ dateRange }: OverviewProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
-        className="p-6"
+        className="p-3 sm:p-6"
       >
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
@@ -367,19 +366,17 @@ export function Overview({ dateRange }: OverviewProps) {
                     transition={{ duration: 0.15, delay: i * 0.03 }}
                     className="flex items-center gap-4"
                   >
-                    <div className="w-[180px] shrink-0">
-                      <TruncatedName
-                        name={c.name}
-                        maxLen={20}
-                        className="text-sm font-medium text-foreground"
-                      />
+                    <div className="w-[120px] sm:w-[180px] md:w-[220px] shrink-0">
+                      <span className="text-xs sm:text-sm font-medium text-foreground truncate block" title={c.name}>
+                        {c.name}
+                      </span>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-[80px]">
                       <ProgressBar percentage={c.achievement} />
                     </div>
-                    <div className="min-w-[80px] text-right">
-                      <span className="text-xs text-muted-foreground">
-                        {c.appointments} appts / {c.seats} seats
+                    <div className="min-w-[60px] sm:min-w-[80px] text-right">
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">
+                        {c.appointments} / {c.seats}
                       </span>
                     </div>
                   </motion.div>

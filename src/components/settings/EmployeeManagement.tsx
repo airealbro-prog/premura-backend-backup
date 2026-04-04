@@ -23,6 +23,7 @@ const PERMISSION_LABELS: { key: keyof UserPermissions; label: string; defaultOn:
   { key: "can_view_credit_scores", label: "Can view credit scores", defaultOn: false },
   { key: "can_view_commissions", label: "Can view commissions", defaultOn: false },
   { key: "can_view_all_clients", label: "Can view all clients", defaultOn: true },
+  { key: "can_view_leads", label: "Can view Leads", defaultOn: true },
 ];
 
 function getDefaultPermissions(): UserPermissions {
@@ -37,6 +38,7 @@ function getDefaultPermissions(): UserPermissions {
     can_view_credit_scores: false,
     can_view_commissions: false,
     can_view_all_clients: true,
+    can_view_leads: true,
     restricted_client_ids: [],
   };
 }
@@ -444,11 +446,11 @@ export function EmployeeManagement() {
 
       {/* Employee Table */}
       <div className="glass-card overflow-x-auto">
-        <div className="grid grid-cols-5 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30 min-w-[700px]">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30">
           <div>Name</div>
-          <div>Email / User ID</div>
-          <div>Role</div>
-          <div>Permissions</div>
+          <div className="hidden sm:block">Email / User ID</div>
+          <div className="hidden sm:block">Role</div>
+          <div className="hidden sm:block">Permissions</div>
           <div className="text-right">Actions</div>
         </div>
 
@@ -464,20 +466,20 @@ export function EmployeeManagement() {
           employees.map((emp) => (
             <div
               key={emp.id}
-              className="grid grid-cols-5 gap-2 px-4 py-3 items-center border-b border-border min-w-[700px]"
+              className="grid grid-cols-2 sm:grid-cols-5 gap-2 px-4 py-3 items-center border-b border-border"
             >
               <div className="text-sm font-medium text-foreground truncate">
                 {emp.permissions.name || "\u2014"}
               </div>
-              <div className="text-sm text-muted-foreground truncate" title={emp.permissions.email ?? emp.user_id}>
+              <div className="hidden sm:block text-sm text-muted-foreground truncate" title={emp.permissions.email ?? emp.user_id}>
                 {emp.permissions.email || <span className="italic text-muted-foreground/60">Email not set</span>}
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
                   {emp.role === "backend_employee" ? "Backend" : "Frontend"}
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="hidden sm:block text-xs text-muted-foreground">
                 {summarizePermissions(emp.permissions)}
               </div>
               <div className="flex items-center justify-end gap-1">
@@ -524,7 +526,7 @@ export function EmployeeManagement() {
           />
 
           {/* Modal content */}
-          <div className="relative w-full max-w-lg mx-4 rounded-lg border border-border p-6 max-h-[85vh] overflow-y-auto"
+          <div className="relative w-full max-w-lg mx-0 sm:mx-4 rounded-none sm:rounded-lg border-0 sm:border border-border p-4 sm:p-6 h-full sm:h-auto sm:max-h-[85vh] overflow-y-auto"
             style={{ background: "#111827" }}
           >
             <div className="flex items-center justify-between mb-5">

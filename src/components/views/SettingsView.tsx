@@ -603,9 +603,9 @@ export function SettingsView() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="p-6"
+      className="p-3 sm:p-6"
     >
-      <h1 className="text-xl font-bold text-primary mb-1">Settings</h1>
+      <h1 className="text-lg sm:text-xl font-bold text-primary mb-1">Settings</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Manage clients, employees, and dashboard access.
       </p>
@@ -854,7 +854,7 @@ export function SettingsView() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60" onClick={closeModal} />
           <div
-            className="relative w-full max-w-lg mx-4 rounded-lg border border-border p-6 max-h-[85vh] overflow-y-auto"
+            className="relative w-full max-w-lg mx-0 sm:mx-4 rounded-none sm:rounded-lg border-0 sm:border border-border p-4 sm:p-6 h-full sm:h-auto sm:max-h-[85vh] overflow-y-auto"
             style={{ background: "#111827" }}
           >
             <div className="flex items-center justify-between mb-5">

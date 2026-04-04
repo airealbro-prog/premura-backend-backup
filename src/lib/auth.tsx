@@ -14,6 +14,7 @@ export interface UserPermissions {
   can_view_credit_scores: boolean;
   can_view_commissions: boolean;
   can_view_all_clients: boolean;
+  can_view_leads: boolean;
   restricted_client_ids: string[];
 }
 
@@ -34,6 +35,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   can_view_credit_scores: false,
   can_view_commissions: false,
   can_view_all_clients: true,
+  can_view_leads: true,
   restricted_client_ids: [],
 };
 
@@ -50,7 +52,7 @@ export interface ImpersonateData {
 
 export function startImpersonation(data: ImpersonateData) {
   sessionStorage.setItem(IMPERSONATE_KEY, JSON.stringify(data));
-  window.open("/", "_blank");
+  window.location.reload();
 }
 
 export function getImpersonation(): ImpersonateData | null {

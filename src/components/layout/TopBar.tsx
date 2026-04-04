@@ -13,6 +13,7 @@ interface TopBarProps {
   dateRange: DateRange;
   onDateRangeChange: (range: DateRange) => void;
   companyName?: string | null;
+  mobileMenuButton?: React.ReactNode;
 }
 
 const viewLabels: Record<ViewType, string> = {
@@ -41,7 +42,7 @@ function DatePickerPopover({
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-elevated border border-border text-sm transition-all hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-md bg-elevated border border-border text-sm transition-all hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
         >
           <Calendar size={13} className="text-primary shrink-0" />
           <span className="text-muted-foreground text-xs font-medium">{label}</span>
@@ -54,7 +55,7 @@ function DatePickerPopover({
                 e.stopPropagation();
                 onClear();
               }}
-              className="ml-1 text-muted-foreground hover:text-primary cursor-pointer"
+              className="ml-0.5 text-muted-foreground hover:text-primary cursor-pointer"
             >
               <X size={12} />
             </span>
@@ -85,20 +86,69 @@ function DatePickerPopover({
   );
 }
 
-export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange, companyName }: TopBarProps) {
+export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange, companyName, mobileMenuButton }: TopBarProps) {
   return (
-    <header className="sticky top-0 z-40 h-14 flex items-center justify-between px-6 border-b border-border glass">
-      <h1 className="text-base font-semibold text-foreground tracking-wide flex items-center gap-2">
-        {viewLabels[currentView]}
-        {companyName && (
-          <span className="text-muted-foreground font-normal">
-            — {companyName}
-          </span>
-        )}
-      </h1>
+    <header className="sticky top-0 z-40 border-b border-border glass">
+      <div className="flex items-center justify-between px-3 sm:px-6 h-14">
+        <div className="flex items-center gap-2 min-w-0">
+          {mobileMenuButton}
+          <h1 className="text-sm sm:text-base font-semibold text-foreground tracking-wide flex items-center gap-2 min-w-0">
+            <span className="shrink-0">{viewLabels[currentView]}</span>
+            {companyName && (
+              <span className="text-muted-foreground font-normal truncate hidden sm:inline">
+                — {companyName}
+              </span>
+            )}
+          </h1>
+        </div>
 
-      <div className="flex items-center gap-3">
-        {/* Date pickers */}
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {/* Date pickers — hidden on very small screens, shown from sm */}
+          <div className="hidden sm:flex items-center gap-2">
+            <DatePickerPopover
+              label="From"
+              value={dateRange.start}
+              onChange={(d) => {
+                d.setHours(0, 0, 0, 0);
+                onDateRangeChange({ ...dateRange, start: d });
+              }}
+              onClear={() => onDateRangeChange({ ...dateRange, start: null })}
+            />
+            <DatePickerPopover
+              label="To"
+              value={dateRange.end}
+              onChange={(d) => {
+                d.setHours(23, 59, 59, 999);
+                onDateRangeChange({ ...dateRange, end: d });
+              }}
+              onClear={() => onDateRangeChange({ ...dateRange, end: null })}
+            />
+          </div>
+
+          {/* Live indicator */}
+          <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
+            <span
+              className="w-2 h-2 rounded-full live-pulse"
+              style={{ background: isConnected ? "#8851F4" : "#ef4444" }}
+            />
+            <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+              {isConnected ? "Live" : "Offline"}
+            </span>
+          </div>
+
+          {/* Refresh */}
+          <button
+            onClick={onRefresh}
+            className="p-2 rounded-md text-muted-foreground hover:text-primary hover:bg-muted/30 transition-colors"
+            title="Refresh data"
+          >
+            <RefreshCw size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile date pickers — stacked below on small screens */}
+      <div className="flex sm:hidden items-center gap-2 px-3 pb-2">
         <DatePickerPopover
           label="From"
           value={dateRange.start}
@@ -117,26 +167,6 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
           }}
           onClear={() => onDateRangeChange({ ...dateRange, end: null })}
         />
-
-        {/* Live indicator */}
-        <div className="flex items-center gap-2 ml-2">
-          <span
-            className="w-2 h-2 rounded-full live-pulse"
-            style={{ background: isConnected ? "#8851F4" : "#ef4444" }}
-          />
-          <span className="text-xs text-muted-foreground font-medium">
-            {isConnected ? "Live" : "Offline"}
-          </span>
-        </div>
-
-        {/* Refresh */}
-        <button
-          onClick={onRefresh}
-          className="p-2 rounded-md text-muted-foreground hover:text-primary hover:bg-muted/30 transition-colors"
-          title="Refresh data"
-        >
-          <RefreshCw size={15} />
-        </button>
       </div>
     </header>
   );

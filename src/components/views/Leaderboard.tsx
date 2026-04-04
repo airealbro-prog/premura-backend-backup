@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
+import { useAuth } from "@/lib/auth";
 import { FilterBar } from "@/components/layout/FilterBar";
 import { LeaderboardCard } from "@/components/shared/LeaderboardCard";
 import { supabase } from "@/lib/supabase";
@@ -16,8 +17,10 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
+  const { userRole } = useAuth();
+  const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
   const { topClients, topAgents, loading, error } = useLeaderboard(filters);
-  const [activeTab, setActiveTab] = useState<"clients" | "agents" | "underperforming">("clients");
+  const [activeTab, setActiveTab] = useState<"clients" | "agents" | "underperforming">(isClientUser ? "agents" : "clients");
   const [clientOptions, setClientOptions] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
         transition={{ duration: 0.3 }}
       >
         {/* Time Filter Tabs */}
-        <div className="px-4 pt-4 flex items-center gap-4 flex-wrap">
+        <div className="px-3 sm:px-4 pt-3 sm:pt-4 flex items-center gap-2 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-1 bg-card rounded-lg border border-border p-1">
             {timeFilterOptions.map((opt) => (
               <button
@@ -93,18 +96,20 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
         </div>
 
         {/* Tab Switcher */}
-        <div className="px-4 pt-4 flex gap-2">
-          <button
-            onClick={() => setActiveTab("clients")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              activeTab === "clients"
-                ? "bg-primary text-white"
-                : "bg-card text-muted-foreground border border-border hover:text-foreground"
-            }`}
-          >
-            <Trophy size={16} />
-            Top Clients
-          </button>
+        <div className="px-3 sm:px-4 pt-3 sm:pt-4 flex gap-2 flex-wrap">
+          {!isClientUser && (
+            <button
+              onClick={() => setActiveTab("clients")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                activeTab === "clients"
+                  ? "bg-primary text-white"
+                  : "bg-card text-muted-foreground border border-border hover:text-foreground"
+              }`}
+            >
+              <Trophy size={16} />
+              Top Clients
+            </button>
+          )}
           <button
             onClick={() => setActiveTab("agents")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
@@ -116,17 +121,19 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
             <Users size={16} />
             Top Agents
           </button>
-          <button
-            onClick={() => setActiveTab("underperforming")}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              activeTab === "underperforming"
-                ? "bg-red-500 text-white"
-                : "bg-card text-muted-foreground border border-border hover:text-foreground"
-            }`}
-          >
-            <AlertTriangle size={16} />
-            Needs Attention
-          </button>
+          {!isClientUser && (
+            <button
+              onClick={() => setActiveTab("underperforming")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                activeTab === "underperforming"
+                  ? "bg-red-500 text-white"
+                  : "bg-card text-muted-foreground border border-border hover:text-foreground"
+              }`}
+            >
+              <AlertTriangle size={16} />
+              Needs Attention
+            </button>
+          )}
         </div>
 
         {/* Content */}
@@ -135,7 +142,7 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
             <Loader2 size={24} className="animate-spin text-primary" />
           </div>
         ) : (
-          <div className="p-4 flex flex-col gap-3">
+          <div className="p-3 sm:p-4 flex flex-col gap-3">
             {activeTab === "clients" ? (
               topClients.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">No client data available.</div>
@@ -174,37 +181,37 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
                   return (
                     <div
                       key={entry.name}
-                      className="glass-card p-4 flex items-center gap-4"
+                      className="glass-card p-3 sm:p-4 flex items-center gap-3 sm:gap-4"
                       style={isBottom ? { borderLeft: `3px solid #ef4444` } : undefined}
                     >
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold text-white shrink-0"
                         style={{ background: color }}
                       >
                         {idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-foreground truncate">{entry.name}</div>
+                        <div className="font-semibold text-foreground truncate text-sm sm:text-base">{entry.name}</div>
                         {isBottom && (
                           <span className="text-xs text-red-400 font-medium">Critically underperforming</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                         <div className="text-right">
                           <div className="text-xs text-muted-foreground">Appts</div>
-                          <div className="font-semibold tabular-nums">{entry.appointments}</div>
+                          <div className="font-semibold tabular-nums text-sm">{entry.appointments}</div>
                         </div>
                         {entry.seats !== undefined && (
-                          <div className="text-right">
+                          <div className="text-right hidden sm:block">
                             <div className="text-xs text-muted-foreground">Seats</div>
                             <div className="font-semibold tabular-nums">{entry.seats}</div>
                           </div>
                         )}
-                        <div className="w-32">
+                        <div className="w-16 sm:w-32">
                           <ProgressBar percentage={entry.achievement} height={8} />
                         </div>
-                        <div className="text-right min-w-[50px]">
-                          <span className="text-sm font-bold tabular-nums" style={{ color }}>
+                        <div className="text-right min-w-[40px] sm:min-w-[50px]">
+                          <span className="text-xs sm:text-sm font-bold tabular-nums" style={{ color }}>
                             {entry.achievement.toFixed(0)}%
                           </span>
                         </div>

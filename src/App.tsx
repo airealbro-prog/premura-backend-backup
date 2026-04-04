@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShieldX, X } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { MobileMenuButton } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { Overview } from "@/components/views/Overview";
 import { PerformanceView } from "@/components/views/PerformanceView";
@@ -30,7 +31,7 @@ const viewPermMap: Record<ViewType, keyof UserPermissions> = {
   clients: "can_view_performance",
   leaderboard: "can_view_leaderboard",
   historical: "can_view_historical",
-  leads: "can_view_overview",
+  leads: "can_view_leads",
   settings: "can_view_settings",
 };
 
@@ -48,6 +49,7 @@ function App() {
   const [activeView, setActiveView] = useState<ViewType>("overview");
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { userRole, isAdmin, hasPermission, isImpersonating, impersonateName, impersonateRole, exitImpersonation } = useAuth();
   const [companyName, setCompanyName] = useState<string | null>(null);
 
@@ -78,7 +80,6 @@ function App() {
   }, []);
 
   const renderView = () => {
-    // Check permission for the active view
     const permKey = viewPermMap[activeView];
     if (!isAdmin && !hasPermission(permKey)) {
       return <AccessDenied />;
@@ -88,29 +89,11 @@ function App() {
       case "overview":
         return <Overview key={refreshKey} dateRange={filters.dateRange} />;
       case "clients":
-        return (
-          <PerformanceView
-            key={refreshKey}
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
-        );
+        return <PerformanceView key={refreshKey} filters={filters} onFiltersChange={setFilters} />;
       case "leaderboard":
-        return (
-          <Leaderboard
-            key={refreshKey}
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
-        );
+        return <Leaderboard key={refreshKey} filters={filters} onFiltersChange={setFilters} />;
       case "historical":
-        return (
-          <HistoricalAnalysis
-            key={refreshKey}
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
-        );
+        return <HistoricalAnalysis key={refreshKey} filters={filters} onFiltersChange={setFilters} />;
       case "leads":
         return <LeadsManagement key={refreshKey} dateRange={filters.dateRange} />;
       case "settings":
@@ -122,12 +105,17 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar activeView={activeView} onNavigate={setActiveView} />
+      <Sidebar
+        activeView={activeView}
+        onNavigate={setActiveView}
+        mobileOpen={mobileOpen}
+        onMobileToggle={() => setMobileOpen(!mobileOpen)}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         {/* Impersonation banner */}
         {isImpersonating && (
-          <div className="flex items-center justify-between px-4 py-2 bg-orange-500/15 border-b border-orange-500/30 text-orange-300 text-sm shrink-0">
-            <span>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-orange-500/15 border-b border-orange-500/30 text-orange-300 text-sm shrink-0">
+            <span className="text-xs sm:text-sm">
               Viewing as: <strong>{impersonateName}</strong> — <span className="capitalize">{impersonateRole?.replace("_", " ")}</span>
             </span>
             <button
@@ -146,6 +134,7 @@ function App() {
           dateRange={filters.dateRange}
           onDateRangeChange={handleDateRangeChange}
           companyName={isClientUser ? companyName : null}
+          mobileMenuButton={<MobileMenuButton onClick={() => setMobileOpen(true)} />}
         />
         <main className="flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">

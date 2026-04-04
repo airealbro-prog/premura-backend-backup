@@ -61,7 +61,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
         transition={{ duration: 0.2 }}
       >
         {/* View Mode Toggle */}
-        <div className="px-4 pt-4 flex items-center gap-4 flex-wrap">
+        <div className="px-3 sm:px-4 pt-3 sm:pt-4 flex items-center gap-2 sm:gap-4 flex-wrap">
           <div className="flex items-center gap-1 bg-card rounded-lg border border-border p-1">
             <button
               onClick={() => setViewMode("weekly")}
@@ -103,7 +103,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
             No historical data available.
           </div>
         ) : (
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             <div className="glass-card overflow-x-auto">
               {/* Header */}
               <div className="flex items-center border-b border-border">
@@ -208,15 +208,15 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
                 onClick={() => setSelectedClient(null)}
               />
               <motion.div
-                className="fixed top-0 right-0 h-full w-[480px] max-w-full bg-card border-l border-border z-50 overflow-y-auto shadow-2xl"
+                className="fixed top-0 right-0 h-full w-full sm:w-[480px] sm:max-w-full bg-card border-l border-border z-50 overflow-y-auto shadow-2xl"
                 initial={{ x: "100%" }}
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-primary">
+                <div className="p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-4 sm:mb-6">
+                    <h2 className="text-lg sm:text-xl font-bold text-primary">
                       {selectedClient.companyName}
                     </h2>
                     <button

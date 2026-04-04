@@ -178,7 +178,7 @@ function AudioPlayer({ url, leadName, onClose }: AudioPlayerProps) {
 
   return (
     <div
-      className="shrink-0 border-t border-border px-4 py-3 flex items-center gap-4"
+      className="shrink-0 border-t border-border px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4"
       style={{ background: "#1e293b" }}
     >
       <audio ref={audioRef} src={url} preload="metadata" />
@@ -191,8 +191,8 @@ function AudioPlayer({ url, leadName, onClose }: AudioPlayerProps) {
         {playing ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
       </button>
 
-      {/* Lead name */}
-      <div className="text-sm text-foreground font-medium truncate min-w-[100px] max-w-[180px]">
+      {/* Lead name — hidden on very small screens */}
+      <div className="text-sm text-foreground font-medium truncate min-w-[80px] max-w-[180px] hidden sm:block">
         {leadName}
       </div>
 
@@ -458,10 +458,10 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   }
 
   return (
-    <div className="p-6 flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
+    <div className="p-3 sm:p-6 flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
       {/* Header */}
-      <div className="mb-4 shrink-0">
-        <h1 className="text-2xl font-bold text-primary mb-1">Leads Management</h1>
+      <div className="mb-3 sm:mb-4 shrink-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-primary mb-1">Leads Management</h1>
         <p className="text-muted-foreground text-sm">
           View and manage all appointment leads.
         </p>
@@ -503,7 +503,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
           {showColumnPicker && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowColumnPicker(false)} />
-              <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border border-border p-2 shadow-xl max-h-80 overflow-y-auto"
+              <div className="fixed inset-4 z-50 rounded-lg border border-border p-2 shadow-xl overflow-y-auto sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-1 sm:w-56 sm:max-h-80"
                 style={{ background: "#111827" }}
               >
                 <div className="flex items-center justify-between px-2 py-1 mb-1">

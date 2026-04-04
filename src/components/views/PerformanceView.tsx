@@ -149,7 +149,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
         transition={{ duration: 0.2 }}
       >
         {/* Toggle + Filters */}
-        <div className="px-4 pt-4 flex items-center gap-4 flex-wrap">
+        <div className="px-2 sm:px-4 pt-4 flex items-center gap-2 sm:gap-4 flex-wrap">
           {/* Pill toggle — hidden for client users */}
           {!isClientUser && (
             <div className="relative flex items-center rounded-full p-1 bg-card border border-border">
@@ -203,12 +203,12 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
               No client data found. Ensure the <code>clients</code> table is populated.
             </div>
           ) : (
-            <div className="glass-card mx-4 mb-4 overflow-hidden">
-              <div className="grid gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20" style={{ gridTemplateColumns: "minmax(280px, 2fr) 90px 60px 60px 60px 3fr" }}>
+            <div className="glass-card mx-2 sm:mx-4 mb-4 overflow-x-auto">
+              <div className="grid gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20 min-w-[600px]" style={{ gridTemplateColumns: "minmax(200px, 2fr) 90px 60px 60px 60px 3fr" }}>
                 <div className="pl-8">Clients</div>
-                <div>Status</div>
-                <div className="text-center">Seats</div>
-                <div className="text-center">Agents</div>
+                <div className="hidden sm:block">Status</div>
+                <div className="hidden md:block text-center">Seats</div>
+                <div className="hidden md:block text-center">Agents</div>
                 <div className="text-center">Appts</div>
                 <div>Achievement</div>
               </div>
@@ -295,9 +295,9 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
               No active agents found in the selected date range.
             </div>
           ) : (
-            <div className="glass-card mx-4 mb-4 overflow-hidden">
+            <div className="glass-card mx-2 sm:mx-4 mb-4 overflow-x-auto">
               {/* Table header */}
-              <div className="grid grid-cols-12 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20">
+              <div className="grid grid-cols-12 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20 min-w-[600px]">
                 <button
                   type="button"
                   onClick={() => handleSort("setterName")}
@@ -347,7 +347,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
               {sortedAgents.map((agent, idx) => (
                 <div
                   key={`${agent.companyId}-${agent.setterName}-${idx}`}
-                  className="grid grid-cols-12 gap-2 px-4 py-2.5 items-center border-t border-border hover:bg-muted/20 transition-colors"
+                  className="grid grid-cols-12 gap-2 px-4 py-2.5 items-center border-t border-border hover:bg-muted/20 transition-colors min-w-[600px]"
                 >
                   <div className="col-span-3 text-sm font-medium text-foreground">
                     <TruncatedName name={agent.setterName} maxLen={24} />
