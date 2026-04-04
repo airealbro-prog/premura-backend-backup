@@ -65,13 +65,6 @@ body {
 }
 
 /* ── Utility classes ── */
-.gradient-text {
-  color: #ffffff;
-}
-
-.gradient-bg {
-  background: #00d4ff;
-}
 
 .glass {
   background: rgba(17, 24, 39, 0.7);

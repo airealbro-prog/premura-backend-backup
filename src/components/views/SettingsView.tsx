@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
+import { EmployeeManagement } from "@/components/settings/EmployeeManagement";
 import type { Client } from "@/types";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Loader2 } from "lucide-react";
@@ -7,6 +9,7 @@ import { Plus, Trash2, Loader2 } from "lucide-react";
 const statusOptions = ["active", "paused", "churned"] as const;
 
 export function SettingsView() {
+  const { isAdmin } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,7 +81,7 @@ export function SettingsView() {
       transition={{ duration: 0.2 }}
       className="p-6"
     >
-      <h1 className="text-xl font-bold gradient-text mb-1">Settings</h1>
+      <h1 className="text-xl font-bold text-primary mb-1">Settings</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Manage client onboarding, seat allocations, and status.
       </p>
@@ -161,7 +164,7 @@ export function SettingsView() {
       </div>
 
       {/* Add New Client */}
-      <div className="glass-card p-5">
+      <div className="glass-card p-5 mb-8">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Add New Client
         </h2>
@@ -261,13 +264,16 @@ export function SettingsView() {
           <button
             onClick={handleAdd}
             disabled={saving || !newRow.company_id || !newRow.company_name}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white gradient-bg disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white bg-primary disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             Add Client
           </button>
         </div>
       </div>
+
+      {/* Employee Management — admin only */}
+      {isAdmin && <EmployeeManagement />}
     </motion.div>
   );
 }

@@ -61,7 +61,7 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
                 }
                 className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
                   filters.timeFilter === opt.value
-                    ? "gradient-bg text-white"
+                    ? "bg-primary text-white"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -91,7 +91,7 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
             onClick={() => setActiveTab("clients")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeTab === "clients"
-                ? "gradient-bg text-white"
+                ? "bg-primary text-white"
                 : "bg-card text-muted-foreground border border-border hover:text-foreground"
             }`}
           >
@@ -102,7 +102,7 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
             onClick={() => setActiveTab("agents")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
               activeTab === "agents"
-                ? "gradient-bg text-white"
+                ? "bg-primary text-white"
                 : "bg-card text-muted-foreground border border-border hover:text-foreground"
             }`}
           >

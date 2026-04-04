@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { ViewType } from "@/types";
 import { useAuth } from "@/lib/auth";
+import type { UserPermissions } from "@/lib/auth";
 import premuraLogo from "@/assets/PREMURA.PNG";
 
 interface SidebarProps {
@@ -19,17 +20,21 @@ interface SidebarProps {
   onNavigate: (view: ViewType) => void;
 }
 
-const navItems: { view: ViewType; label: string; icon: typeof BarChart3 }[] = [
-  { view: "overview", label: "Overview", icon: BarChart3 },
-  { view: "clients", label: "Performance", icon: Building2 },
-  { view: "leaderboard", label: "Leaderboard", icon: Trophy },
-  { view: "historical", label: "Historical", icon: CalendarDays },
-  { view: "settings", label: "Settings", icon: Settings },
+const navItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey: keyof UserPermissions }[] = [
+  { view: "overview", label: "Overview", icon: BarChart3, permKey: "can_view_overview" },
+  { view: "clients", label: "Performance", icon: Building2, permKey: "can_view_performance" },
+  { view: "leaderboard", label: "Leaderboard", icon: Trophy, permKey: "can_view_leaderboard" },
+  { view: "historical", label: "Historical", icon: CalendarDays, permKey: "can_view_historical" },
+  { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
 ];
 
 export function Sidebar({ activeView, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, hasPermission, signOut } = useAuth();
+
+  const visibleItems = navItems.filter(
+    (item) => isAdmin || hasPermission(item.permKey)
+  );
 
   return (
     <motion.aside
@@ -46,7 +51,7 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
           className="h-9 w-9 object-contain shrink-0"
         />
         {!collapsed && (
-          <span className="gradient-text text-lg font-bold tracking-wide truncate">
+          <span className="text-white text-lg font-bold tracking-wide truncate">
             Premura
           </span>
         )}
@@ -54,7 +59,7 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2">
-        {navItems.map(({ view, label, icon: Icon }) => {
+        {visibleItems.map(({ view, label, icon: Icon }) => {
           const isActive = activeView === view;
           return (
             <button
@@ -90,14 +95,11 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
 
       {/* User + Sign Out */}
       <div className="border-t border-border px-2 py-2 space-y-1">
-        {/* User email */}
         {!collapsed && user?.email && (
           <div className="px-3 py-1.5">
             <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
           </div>
         )}
-
-        {/* Sign Out button */}
         <button
           onClick={() => signOut()}
           className="flex items-center gap-3 px-3 py-2 rounded-md w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all text-left"

@@ -63,7 +63,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
               onClick={() => setViewMode("weekly")}
               className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
                 viewMode === "weekly"
-                  ? "gradient-bg text-white"
+                  ? "bg-primary text-white"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -73,7 +73,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
               onClick={() => setViewMode("monthly")}
               className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
                 viewMode === "monthly"
-                  ? "gradient-bg text-white"
+                  ? "bg-primary text-white"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -212,7 +212,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold gradient-text">
+                    <h2 className="text-xl font-bold text-primary">
                       {selectedClient.companyName}
                     </h2>
                     <button

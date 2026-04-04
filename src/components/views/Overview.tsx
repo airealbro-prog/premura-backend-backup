@@ -176,7 +176,7 @@ export function Overview({ dateRange }: OverviewProps) {
 
         {/* Welcome Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold gradient-text mb-1">
+          <h1 className="text-2xl font-bold text-primary mb-1">
             Performance Dashboard
           </h1>
           <p className="text-muted-foreground text-sm">
