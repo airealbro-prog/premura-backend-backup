@@ -50,6 +50,27 @@ function generatePassword(): string {
   return `Premura${digits}!`;
 }
 
+function validatePassword(pw: string) {
+  return {
+    minLength: pw.length >= 8,
+    hasUpper: /[A-Z]/.test(pw),
+    hasLower: /[a-z]/.test(pw),
+    hasNumber: /[0-9]/.test(pw),
+  };
+}
+
+function isPasswordValid(pw: string): boolean {
+  const v = validatePassword(pw);
+  return v.minLength && v.hasUpper && v.hasLower && v.hasNumber;
+}
+
+const PASSWORD_RULES: { key: keyof ReturnType<typeof validatePassword>; label: string }[] = [
+  { key: "minLength", label: "At least 8 characters" },
+  { key: "hasUpper", label: "One uppercase letter" },
+  { key: "hasLower", label: "One lowercase letter" },
+  { key: "hasNumber", label: "One number" },
+];
+
 export function EmployeeManagement() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -405,6 +426,21 @@ export function EmployeeManagement() {
                       Generate
                     </button>
                   </div>
+                  {formPassword && (
+                    <div className="mt-2 space-y-1">
+                      {PASSWORD_RULES.map((rule) => {
+                        const met = validatePassword(formPassword)[rule.key];
+                        return (
+                          <div key={rule.key} className="flex items-center gap-1.5">
+                            <Check size={12} className={met ? "text-green-400" : "text-muted-foreground/40"} />
+                            <span className={`text-xs ${met ? "text-green-400" : "text-muted-foreground/60"}`}>
+                              {rule.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -481,7 +517,7 @@ export function EmployeeManagement() {
               {/* Submit */}
               <button
                 onClick={handleSubmit}
-                disabled={sending || (!editingEmployee && (!formEmail || !formPassword)) || !!createdCredentials}
+                disabled={sending || (!editingEmployee && (!formEmail || !formPassword || !isPasswordValid(formPassword))) || !!createdCredentials}
                 className="w-full py-2.5 rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {sending ? (
