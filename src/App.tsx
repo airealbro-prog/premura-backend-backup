@@ -8,6 +8,7 @@ import { PerformanceView } from "@/components/views/PerformanceView";
 import { Leaderboard } from "@/components/views/Leaderboard";
 import { HistoricalAnalysis } from "@/components/views/HistoricalAnalysis";
 import { SettingsView } from "@/components/views/SettingsView";
+import { LeadsManagement } from "@/components/views/LeadsManagement";
 import { getDefaultDateRange } from "@/lib/dateUtils";
 import { useAuth } from "@/lib/auth";
 import type { UserPermissions } from "@/lib/auth";
@@ -28,6 +29,7 @@ const viewPermMap: Record<ViewType, keyof UserPermissions> = {
   clients: "can_view_performance",
   leaderboard: "can_view_leaderboard",
   historical: "can_view_historical",
+  leads: "can_view_overview",
   settings: "can_view_settings",
 };
 
@@ -90,6 +92,8 @@ function App() {
             onFiltersChange={setFilters}
           />
         );
+      case "leads":
+        return <LeadsManagement key={refreshKey} dateRange={filters.dateRange} />;
       case "settings":
         return <SettingsView key={refreshKey} />;
       default:

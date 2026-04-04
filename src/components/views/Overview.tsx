@@ -14,6 +14,7 @@ import {
   Users,
   CalendarCheck,
   TrendingUp,
+  CalendarClock,
   Loader2,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export function Overview({ dateRange }: OverviewProps) {
     totalActiveAgents: 0,
     totalAppointments: 0,
     avgAchievement: 0,
+    avgBookOut: 0,
     clientSummaries: [] as {
       name: string;
       achievement: number;
@@ -125,11 +127,30 @@ export function Overview({ dateRange }: OverviewProps) {
         ? achievements.reduce((a, b) => a + b, 0) / achievements.length
         : 0;
 
+      // Calculate average book-out days (booked_for - created_at)
+      const bookOutDays: number[] = [];
+      for (const appt of allRangeAppts) {
+        if (!appt.booked_for || !appt.created_at) continue;
+        try {
+          const createdDate = new Date(appt.created_at);
+          // booked_for is formatted like "Thursday, April 2, 2026 3:30 PM"
+          const bookedDate = new Date(appt.booked_for);
+          if (isNaN(bookedDate.getTime()) || isNaN(createdDate.getTime())) continue;
+          const diffMs = bookedDate.getTime() - createdDate.getTime();
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          if (diffDays >= 0) bookOutDays.push(diffDays);
+        } catch { /* skip unparseable */ }
+      }
+      const avgBookOut = bookOutDays.length > 0
+        ? bookOutDays.reduce((a, b) => a + b, 0) / bookOutDays.length
+        : 0;
+
       setStats({
         totalClients: allClients.length,
         totalActiveAgents: allActiveAgents.size,
         totalAppointments: allValidAppts.length,
         avgAchievement,
+        avgBookOut,
         clientSummaries: clientSummaries.sort((a, b) => b.achievement - a.achievement),
       });
     } catch (err) {
@@ -185,7 +206,7 @@ export function Overview({ dateRange }: OverviewProps) {
         </div>
 
         {/* Top Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <StatCard
             label="Active Clients"
             value={stats.totalClients}
@@ -206,6 +227,11 @@ export function Overview({ dateRange }: OverviewProps) {
             value={`${stats.avgAchievement.toFixed(1)}%`}
             icon={<TrendingUp size={16} className="text-primary" />}
             accentColor={getAchievementColor(stats.avgAchievement)}
+          />
+          <StatCard
+            label="Avg Book-Out"
+            value={`${stats.avgBookOut.toFixed(1)} days`}
+            icon={<CalendarClock size={16} className="text-primary" />}
           />
         </div>
 

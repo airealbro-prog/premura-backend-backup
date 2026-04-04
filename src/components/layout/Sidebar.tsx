@@ -5,6 +5,7 @@ import {
   Building2,
   Trophy,
   CalendarDays,
+  ClipboardList,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +26,7 @@ const navItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey
   { view: "clients", label: "Performance", icon: Building2, permKey: "can_view_performance" },
   { view: "leaderboard", label: "Leaderboard", icon: Trophy, permKey: "can_view_leaderboard" },
   { view: "historical", label: "Historical", icon: CalendarDays, permKey: "can_view_historical" },
+  { view: "leads", label: "Leads", icon: ClipboardList, permKey: "can_view_overview" },
   { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
 ];
 

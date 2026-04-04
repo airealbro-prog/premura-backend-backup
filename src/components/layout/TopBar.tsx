@@ -19,6 +19,7 @@ const viewLabels: Record<ViewType, string> = {
   clients: "Performance",
   leaderboard: "Leaderboard",
   historical: "Historical Analysis",
+  leads: "Leads Management",
   settings: "Settings",
 };
 

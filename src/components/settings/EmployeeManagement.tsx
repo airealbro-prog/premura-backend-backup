@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { UserPermissions } from "@/lib/auth";
-import { Plus, Pencil, Trash2, X, Loader2, Check, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, Check, Eye, EyeOff, RefreshCw, Mail, KeyRound, AlertTriangle } from "lucide-react";
 
 interface Employee {
   id: string;
   user_id: string;
   role: string;
-  permissions: UserPermissions;
+  permissions: UserPermissions & { email?: string };
   email?: string;
 }
 
@@ -71,6 +71,59 @@ const PASSWORD_RULES: { key: keyof ReturnType<typeof validatePassword>; label: s
   { key: "hasNumber", label: "One number" },
 ];
 
+function PasswordValidationChecklist({ password }: { password: string }) {
+  if (!password) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      {PASSWORD_RULES.map((rule) => {
+        const met = validatePassword(password)[rule.key];
+        return (
+          <div key={rule.key} className="flex items-center gap-1.5">
+            <Check size={12} className={met ? "text-green-400" : "text-muted-foreground/40"} />
+            <span className={`text-xs ${met ? "text-green-400" : "text-muted-foreground/60"}`}>
+              {rule.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PasswordField({
+  value,
+  onChange,
+  show,
+  onToggleShow,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  onToggleShow: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative flex-1">
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+        placeholder={placeholder ?? "Enter password"}
+      />
+      <button
+        type="button"
+        onClick={onToggleShow}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        tabIndex={-1}
+      >
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
+
 export function EmployeeManagement() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,6 +142,16 @@ export function EmployeeManagement() {
   const [formPerms, setFormPerms] = useState<UserPermissions>(getDefaultPermissions());
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
 
+  // Edit modal - password reset
+  const [resetPassword, setResetPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+
+  // Remove confirmation
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [removeSending, setRemoveSending] = useState(false);
+
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
@@ -99,14 +162,12 @@ export function EmployeeManagement() {
         .order("created_at", { ascending: true });
 
       if (data) {
-        // Fetch emails from auth.users via a Supabase function or just display user_id
-        // We store the name in permissions.name
         setEmployees(
           data.map((d) => ({
             id: d.id,
             user_id: d.user_id,
             role: d.role,
-            permissions: { ...getDefaultPermissions(), ...(d.permissions as Partial<UserPermissions>) },
+            permissions: { ...getDefaultPermissions(), ...(d.permissions as Partial<UserPermissions & { email?: string }>) },
           }))
         );
       }
@@ -131,17 +192,26 @@ export function EmployeeManagement() {
     setSuccessMsg(null);
     setErrorMsg(null);
     setCreatedCredentials(null);
+    setResetPassword("");
+    setShowResetPassword(false);
+    setResetMsg(null);
+    setShowRemoveConfirm(false);
     setShowModal(true);
   };
 
   const openEditModal = (emp: Employee) => {
     setEditingEmployee(emp);
     setFormName(emp.permissions.name ?? "");
-    setFormEmail("");
+    setFormEmail(emp.permissions.email ?? "");
     setFormRole(emp.role as "backend_employee" | "frontend_employee");
     setFormPerms({ ...emp.permissions });
     setSuccessMsg(null);
     setErrorMsg(null);
+    setCreatedCredentials(null);
+    setResetPassword("");
+    setShowResetPassword(false);
+    setResetMsg(null);
+    setShowRemoveConfirm(false);
     setShowModal(true);
   };
 
@@ -154,16 +224,92 @@ export function EmployeeManagement() {
     setFormPerms((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleResetPassword = async () => {
+    if (!editingEmployee || !resetPassword) return;
+    setResetSending(true);
+    setResetMsg(null);
+
+    try {
+      // Try admin API first
+      try {
+        const adminRes = await (supabase.auth.admin as { updateUserById: (id: string, opts: Record<string, unknown>) => Promise<{ error: { message: string } | null }> }).updateUserById(
+          editingEmployee.user_id,
+          { password: resetPassword }
+        );
+        if (adminRes.error) throw new Error(adminRes.error.message);
+        setResetMsg("Password updated successfully.");
+        setResetPassword("");
+      } catch {
+        // Fallback: updateUser (only works if current user is the target)
+        const { error } = await supabase.auth.updateUser({ password: resetPassword });
+        if (error) {
+          setResetMsg(`Error: ${error.message}`);
+        } else {
+          setResetMsg("Password updated successfully.");
+          setResetPassword("");
+        }
+      }
+    } catch (err) {
+      setResetMsg(`Error: ${err instanceof Error ? err.message : "Failed to update password"}`);
+    }
+    setResetSending(false);
+  };
+
+  const handleSendResetLink = async () => {
+    const email = editingEmployee?.permissions.email;
+    if (!email) {
+      setResetMsg("No email on file for this employee.");
+      return;
+    }
+    setResetSending(true);
+    setResetMsg(null);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) {
+        setResetMsg(`Error: ${error.message}`);
+      } else {
+        setResetMsg(`Password reset link sent to ${email}.`);
+      }
+    } catch {
+      setResetMsg("Error: Failed to send reset link.");
+    }
+    setResetSending(false);
+  };
+
+  const handleRemoveEmployee = async () => {
+    if (!editingEmployee) return;
+    setRemoveSending(true);
+    try {
+      // Delete from user_roles
+      await supabase.from("user_roles").delete().eq("id", editingEmployee.id);
+
+      // Try to delete from auth.users via admin API
+      try {
+        await (supabase.auth.admin as { deleteUser: (id: string) => Promise<{ error: { message: string } | null }> }).deleteUser(editingEmployee.user_id);
+      } catch {
+        // Admin API not available from client — role is removed, auth user remains
+      }
+
+      setShowModal(false);
+      fetchEmployees();
+    } catch {
+      setErrorMsg("Failed to remove employee.");
+    }
+    setRemoveSending(false);
+  };
+
   const handleSubmit = async () => {
     setSending(true);
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const permissionsJson = { ...formPerms, name: formName };
+    const permissionsJson: Record<string, unknown> = { ...formPerms, name: formName };
 
     try {
       if (editingEmployee) {
-        // Update existing
+        // Preserve the email in permissions
+        permissionsJson.email = editingEmployee.permissions.email ?? formEmail;
+
         const { error } = await supabase
           .from("user_roles")
           .update({
@@ -192,6 +338,9 @@ export function EmployeeManagement() {
           setSending(false);
           return;
         }
+
+        // Store email in permissions JSON
+        permissionsJson.email = formEmail;
 
         let newUserId: string | undefined;
 
@@ -251,6 +400,8 @@ export function EmployeeManagement() {
     setSending(false);
   };
 
+  const employeeEmail = editingEmployee?.permissions.email;
+
   return (
     <div>
       {/* Header */}
@@ -297,10 +448,10 @@ export function EmployeeManagement() {
               className="grid grid-cols-5 gap-2 px-4 py-3 items-center border-b border-border min-w-[700px]"
             >
               <div className="text-sm font-medium text-foreground truncate">
-                {emp.permissions.name || "—"}
+                {emp.permissions.name || "\u2014"}
               </div>
-              <div className="text-sm text-muted-foreground truncate" title={emp.user_id}>
-                {emp.user_id.slice(0, 8)}...
+              <div className="text-sm text-muted-foreground truncate" title={emp.permissions.email ?? emp.user_id}>
+                {emp.permissions.email ?? `${emp.user_id.slice(0, 8)}...`}
               </div>
               <div>
                 <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
@@ -371,8 +522,18 @@ export function EmployeeManagement() {
                 />
               </div>
 
-              {/* Email — only for new */}
-              {!editingEmployee && (
+              {/* Email — read-only for edit, editable for new */}
+              {editingEmployee ? (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
+                    Email
+                  </label>
+                  <div className="w-full rounded-md border border-border bg-muted/20 text-muted-foreground px-3 py-2 text-sm flex items-center gap-2">
+                    <Mail size={14} />
+                    {employeeEmail || <span className="italic">No email on file</span>}
+                  </div>
+                </div>
+              ) : (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                     Email
@@ -395,24 +556,12 @@ export function EmployeeManagement() {
                     Password
                   </label>
                   <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={formPassword}
-                        onChange={(e) => setFormPassword(e.target.value)}
-                        className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        placeholder="Enter password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
+                    <PasswordField
+                      value={formPassword}
+                      onChange={setFormPassword}
+                      show={showPassword}
+                      onToggleShow={() => setShowPassword(!showPassword)}
+                    />
                     <button
                       type="button"
                       onClick={() => {
@@ -426,21 +575,7 @@ export function EmployeeManagement() {
                       Generate
                     </button>
                   </div>
-                  {formPassword && (
-                    <div className="mt-2 space-y-1">
-                      {PASSWORD_RULES.map((rule) => {
-                        const met = validatePassword(formPassword)[rule.key];
-                        return (
-                          <div key={rule.key} className="flex items-center gap-1.5">
-                            <Check size={12} className={met ? "text-green-400" : "text-muted-foreground/40"} />
-                            <span className={`text-xs ${met ? "text-green-400" : "text-muted-foreground/60"}`}>
-                              {rule.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <PasswordValidationChecklist password={formPassword} />
                 </div>
               )}
 
@@ -531,6 +666,121 @@ export function EmployeeManagement() {
                   "Create Employee"
                 )}
               </button>
+
+              {/* ---- Edit-only sections ---- */}
+              {editingEmployee && (
+                <>
+                  {/* Divider */}
+                  <div className="border-t border-border pt-4 mt-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <KeyRound size={14} className="text-muted-foreground" />
+                      <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                        Reset Password
+                      </label>
+                    </div>
+
+                    {/* New password input */}
+                    <div className="flex gap-2 mb-1">
+                      <PasswordField
+                        value={resetPassword}
+                        onChange={setResetPassword}
+                        show={showResetPassword}
+                        onToggleShow={() => setShowResetPassword(!showResetPassword)}
+                        placeholder="New password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResetPassword(generatePassword());
+                          setShowResetPassword(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap"
+                        title="Generate Password"
+                      >
+                        <RefreshCw size={14} />
+                        Generate
+                      </button>
+                    </div>
+
+                    <PasswordValidationChecklist password={resetPassword} />
+
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={handleResetPassword}
+                        disabled={resetSending || !resetPassword || !isPasswordValid(resetPassword)}
+                        className="flex-1 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {resetSending ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                        Update Password
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSendResetLink}
+                        disabled={resetSending || !employeeEmail}
+                        className="flex-1 py-2 rounded-md border border-border bg-card hover:bg-muted/30 text-foreground font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {resetSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                        Send Reset Link
+                      </button>
+                    </div>
+
+                    {resetMsg && (
+                      <div className={`mt-2 rounded-md px-3 py-2 text-xs ${
+                        resetMsg.startsWith("Error")
+                          ? "bg-destructive/10 border border-destructive/30 text-destructive"
+                          : "bg-success/10 border border-success/30 text-success"
+                      }`}>
+                        {resetMsg}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Remove Employee */}
+                  <div className="border-t border-border pt-4 mt-2">
+                    {!showRemoveConfirm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowRemoveConfirm(true)}
+                        className="w-full py-2.5 rounded-md border border-destructive/40 bg-destructive/10 text-destructive font-medium text-sm transition-all hover:bg-destructive/20 flex items-center justify-center gap-2"
+                      >
+                        <Trash2 size={14} />
+                        Remove Employee
+                      </button>
+                    ) : (
+                      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle size={16} className="text-destructive shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-destructive">Are you sure?</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              This will remove {formName || "this employee"} from the dashboard and delete their account. This action cannot be undone.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleRemoveEmployee}
+                            disabled={removeSending}
+                            className="flex-1 py-2 rounded-md bg-destructive text-white font-medium text-sm transition-all hover:bg-destructive/90 disabled:opacity-40 flex items-center justify-center gap-2"
+                          >
+                            {removeSending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            Yes, Remove
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowRemoveConfirm(false)}
+                            className="flex-1 py-2 rounded-md border border-border bg-card text-foreground font-medium text-sm transition-all hover:bg-muted/30"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
