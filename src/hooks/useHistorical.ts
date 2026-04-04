@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { isValidAppointment, clientAchievement, agentAchievement } from "@/lib/calculations";
 import { getBusinessWeeks, getMonthRanges, isInRange, countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
@@ -23,15 +24,24 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
   const [periods, setPeriods] = useState<WeekRange[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { userRole } = useAuth();
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
+      let clientsQuery = supabase.from("clients").select("*");
+      let appointmentsQuery = supabase.from("appointments_new").select("*");
+
+      if (userRole?.role === "client" && userRole.company_id) {
+        clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
+        appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
+      }
+
       const [clientsRes, appointmentsRes] = await Promise.all([
-        supabase.from("clients").select("*"),
-        supabase.from("appointments_new").select("*"),
+        clientsQuery,
+        appointmentsQuery,
       ]);
 
       if (clientsRes.error) throw clientsRes.error;
@@ -124,7 +134,7 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
     } finally {
       setLoading(false);
     }
-  }, [filters, viewMode]);
+  }, [filters, viewMode, userRole]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

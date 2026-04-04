@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { isValidAppointment, clientAchievement, getAchievementColor } from "@/lib/calculations";
 import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
@@ -75,6 +76,7 @@ function renderPieLabel(props: any) {
 }
 
 export function Overview({ dateRange }: OverviewProps) {
+  const { userRole } = useAuth();
   const [stats, setStats] = useState({
     totalClients: 0,
     totalActiveAgents: 0,
@@ -95,9 +97,18 @@ export function Overview({ dateRange }: OverviewProps) {
   const fetchStats = useCallback(async () => {
     try {
       setError(null);
+
+      let clientsQuery = supabase.from("clients").select("*");
+      let appointmentsQuery = supabase.from("appointments_new").select("*");
+
+      if (userRole?.role === "client" && userRole.company_id) {
+        clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
+        appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
+      }
+
       const [clientsRes, appointmentsRes] = await Promise.all([
-        supabase.from("clients").select("*"),
-        supabase.from("appointments_new").select("*"),
+        clientsQuery,
+        appointmentsQuery,
       ]);
 
       if (clientsRes.error) throw clientsRes.error;
@@ -174,7 +185,7 @@ export function Overview({ dateRange }: OverviewProps) {
     } finally {
       setLoading(false);
     }
-  }, [dateRange]);
+  }, [dateRange, userRole]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
