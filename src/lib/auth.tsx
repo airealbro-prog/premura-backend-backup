@@ -15,6 +15,7 @@ export interface UserPermissions {
   can_view_commissions: boolean;
   can_view_all_clients: boolean;
   can_view_leads: boolean;
+  can_view_client_profiles: boolean;
   restricted_client_ids: string[];
 }
 
@@ -36,6 +37,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   can_view_commissions: false,
   can_view_all_clients: true,
   can_view_leads: true,
+  can_view_client_profiles: false,
   restricted_client_ids: [],
 };
 

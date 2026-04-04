@@ -14,7 +14,7 @@ import { getDefaultDateRange } from "@/lib/dateUtils";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import type { UserPermissions } from "@/lib/auth";
-import type { ViewType, FilterState, DateRange } from "@/types";
+import type { ViewType, FilterState, DateRange, Client } from "@/types";
 
 const defaultDateRange = getDefaultDateRange();
 
@@ -52,6 +52,8 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { userRole, isAdmin, hasPermission, isImpersonating, impersonateName, impersonateRole, exitImpersonation } = useAuth();
   const [companyName, setCompanyName] = useState<string | null>(null);
+  const [overviewClientOptions, setOverviewClientOptions] = useState<{ id: string; name: string }[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 
   const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
 
@@ -70,6 +72,25 @@ function App() {
     }
   }, [isClientUser, userRole?.company_id]);
 
+  // Fetch client options for the Overview client filter
+  useEffect(() => {
+    if (isClientUser) return;
+    supabase
+      .from("clients")
+      .select("company_id, company_name")
+      .order("company_name")
+      .then(({ data }) => {
+        if (data) {
+          setOverviewClientOptions(
+            data.map((d: Pick<Client, "company_id" | "company_name">) => ({
+              id: d.company_id,
+              name: d.company_name,
+            }))
+          );
+        }
+      });
+  }, [isClientUser]);
+
   const handleRefresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
     setFilters((f) => ({ ...f }));
@@ -87,7 +108,7 @@ function App() {
 
     switch (activeView) {
       case "overview":
-        return <Overview key={refreshKey} dateRange={filters.dateRange} />;
+        return <Overview key={refreshKey} dateRange={filters.dateRange} selectedCompanyId={selectedCompanyId} />;
       case "clients":
         return <PerformanceView key={refreshKey} filters={filters} onFiltersChange={setFilters} />;
       case "leaderboard":
@@ -99,7 +120,7 @@ function App() {
       case "settings":
         return <SettingsView key={refreshKey} />;
       default:
-        return <Overview key={refreshKey} dateRange={filters.dateRange} />;
+        return <Overview key={refreshKey} dateRange={filters.dateRange} selectedCompanyId={selectedCompanyId} />;
     }
   };
 
@@ -135,6 +156,9 @@ function App() {
           onDateRangeChange={handleDateRangeChange}
           companyName={isClientUser ? companyName : null}
           mobileMenuButton={<MobileMenuButton onClick={() => setMobileOpen(true)} />}
+          clientOptions={activeView === "overview" && !isClientUser ? overviewClientOptions : undefined}
+          selectedCompanyId={selectedCompanyId}
+          onCompanyChange={activeView === "overview" && !isClientUser ? setSelectedCompanyId : undefined}
         />
         <main className="flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">

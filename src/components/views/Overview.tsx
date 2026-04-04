@@ -31,6 +31,7 @@ import {
 
 interface OverviewProps {
   dateRange: DateRange;
+  selectedCompanyId?: string;
 }
 
 // Chart colors — 4-color palette: Purple #8851F4, Blue #3b82f6, Orange #f59e0b, Red #ef4444
@@ -74,11 +75,9 @@ function renderPieLabel(props: any) {
   );
 }
 
-export function Overview({ dateRange }: OverviewProps) {
+export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
   const { userRole } = useAuth();
   const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [allClients, setAllClients] = useState<Client[]>([]);
   const [stats, setStats] = useState({
     totalClients: 0,
     totalActiveAgents: 0,
@@ -118,8 +117,6 @@ export function Overview({ dateRange }: OverviewProps) {
 
       const fetchedClients: Client[] = clientsRes.data ?? [];
       const allAppointments: Appointment[] = appointmentsRes.data ?? [];
-
-      setAllClients(fetchedClients);
 
       // Apply client filter if selected
       const allClients = selectedCompanyId
@@ -326,24 +323,6 @@ export function Overview({ dateRange }: OverviewProps) {
             Real-time overview of all campaigns and agent performance.
           </p>
         </div>
-
-        {/* Client Filter */}
-        {!isClientUser && (
-          <div className="mb-6">
-            <select
-              value={selectedCompanyId}
-              onChange={(e) => setSelectedCompanyId(e.target.value)}
-              className="rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              <option value="">All Clients</option>
-              {allClients.map((c) => (
-                <option key={c.company_id} value={c.company_id}>
-                  {c.company_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {/* Top Stats */}
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${isClientUser ? "lg:grid-cols-4" : "lg:grid-cols-5"} gap-4 mb-8`}>

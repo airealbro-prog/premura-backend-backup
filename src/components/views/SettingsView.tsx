@@ -89,7 +89,7 @@ interface ClientUser {
 }
 
 export function SettingsView() {
-  const { isAdmin, userRole } = useAuth();
+  const { isAdmin, userRole, hasPermission } = useAuth();
   const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
   const canManageUsers = isClientAdmin && (userRole?.permissions as unknown as Record<string, unknown>)?.can_manage_users === true;
   const [tab, setTab] = useState<SettingsTab>("clients");
@@ -906,7 +906,7 @@ export function SettingsView() {
                           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary mx-2 shrink-0">
                             {u.role === "client_admin" ? "Admin" : "User"}
                           </span>
-                          {isAdmin && (
+                          {(isAdmin || hasPermission("can_view_client_profiles")) && (
                             <span
                               role="button"
                               tabIndex={0}

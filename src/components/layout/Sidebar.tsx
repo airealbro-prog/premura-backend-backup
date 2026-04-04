@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  ExternalLink,
 } from "lucide-react";
 import type { ViewType } from "@/types";
 import { useAuth } from "@/lib/auth";
@@ -41,6 +42,7 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle }: 
 
   const isClient = userRole?.role === "client";
   const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
+  const showDashboardSwitcher = userRole?.role === "agency_admin" || userRole?.role === "backend_employee";
   const [clientAgentCount, setClientAgentCount] = useState(0);
 
   useEffect(() => {
@@ -86,6 +88,26 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle }: 
           </button>
         )}
       </div>
+
+      {/* Dashboard Switcher */}
+      {showDashboardSwitcher && (isMobile || !collapsed) && (
+        <div className="px-2 pt-2">
+          <div className="flex items-center rounded-md p-0.5 bg-muted/30 border border-border">
+            <div className="flex-1 px-2.5 py-1.5 text-xs font-semibold text-white rounded bg-primary/20 text-center">
+              Backend
+            </div>
+            <a
+              href="https://frontend.premura.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded hover:bg-muted/30 transition-colors text-center"
+            >
+              Frontend
+              <ExternalLink size={10} className="shrink-0" />
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2 overflow-y-auto">

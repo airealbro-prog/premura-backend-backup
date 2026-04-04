@@ -14,6 +14,9 @@ interface TopBarProps {
   onDateRangeChange: (range: DateRange) => void;
   companyName?: string | null;
   mobileMenuButton?: React.ReactNode;
+  clientOptions?: { id: string; name: string }[];
+  selectedCompanyId?: string;
+  onCompanyChange?: (id: string) => void;
 }
 
 const viewLabels: Record<ViewType, string> = {
@@ -86,7 +89,7 @@ function DatePickerPopover({
   );
 }
 
-export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange, companyName, mobileMenuButton }: TopBarProps) {
+export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange, companyName, mobileMenuButton, clientOptions, selectedCompanyId, onCompanyChange }: TopBarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border glass">
       <div className="flex items-center justify-between px-3 sm:px-6 h-14">
@@ -103,6 +106,20 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {/* Client filter — only on Overview for non-client users */}
+          {clientOptions && clientOptions.length > 0 && onCompanyChange && (
+            <select
+              value={selectedCompanyId ?? ""}
+              onChange={(e) => onCompanyChange(e.target.value)}
+              className="rounded-md border border-border bg-elevated text-foreground px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 max-w-[180px] hidden sm:block"
+            >
+              <option value="">All Clients</option>
+              {clientOptions.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+
           {/* Date pickers — hidden on very small screens, shown from sm */}
           <div className="hidden sm:flex items-center gap-2">
             <DatePickerPopover
@@ -148,7 +165,19 @@ export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateR
       </div>
 
       {/* Mobile date pickers — stacked below on small screens */}
-      <div className="flex sm:hidden items-center gap-2 px-3 pb-2">
+      <div className="flex sm:hidden items-center gap-2 px-3 pb-2 flex-wrap">
+        {clientOptions && clientOptions.length > 0 && onCompanyChange && (
+          <select
+            value={selectedCompanyId ?? ""}
+            onChange={(e) => onCompanyChange(e.target.value)}
+            className="rounded-md border border-border bg-elevated text-foreground px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 flex-1 min-w-0"
+          >
+            <option value="">All Clients</option>
+            {clientOptions.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
         <DatePickerPopover
           label="From"
           value={dateRange.start}

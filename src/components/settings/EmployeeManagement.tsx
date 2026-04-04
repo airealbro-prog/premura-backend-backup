@@ -12,18 +12,19 @@ interface Employee {
   email?: string;
 }
 
-const PERMISSION_LABELS: { key: keyof UserPermissions; label: string; defaultOn: boolean }[] = [
+const PERMISSION_LABELS: { key: keyof UserPermissions; label: string; defaultOn: boolean; warning?: string }[] = [
   { key: "can_view_overview", label: "Can view Overview", defaultOn: true },
   { key: "can_view_performance", label: "Can view Performance", defaultOn: true },
   { key: "can_view_leaderboard", label: "Can view Leaderboard", defaultOn: true },
   { key: "can_view_historical", label: "Can view Historical", defaultOn: true },
-  { key: "can_view_settings", label: "Can view Settings", defaultOn: false },
+  { key: "can_view_settings", label: "Can view Settings", defaultOn: false, warning: "\u26a0\ufe0f Warning: Settings access allows managing client accounts and employee data." },
   { key: "can_view_contacts", label: "Can view contact info", defaultOn: true },
   { key: "can_view_recordings", label: "Can view recordings", defaultOn: true },
   { key: "can_view_credit_scores", label: "Can view credit scores", defaultOn: false },
   { key: "can_view_commissions", label: "Can view commissions", defaultOn: false },
   { key: "can_view_all_clients", label: "Can view all clients", defaultOn: true },
   { key: "can_view_leads", label: "Can view Leads", defaultOn: true },
+  { key: "can_view_client_profiles", label: "Can view client profiles", defaultOn: false, warning: "\u26a0\ufe0f Warning: This permission allows the employee to view any client's dashboard as if they were logged in as that client. Only grant this to trusted employees." },
 ];
 
 function getDefaultPermissions(): UserPermissions {
@@ -39,6 +40,7 @@ function getDefaultPermissions(): UserPermissions {
     can_view_commissions: false,
     can_view_all_clients: true,
     can_view_leads: true,
+    can_view_client_profiles: false,
     restricted_client_ids: [],
   };
 }
@@ -690,25 +692,31 @@ export function EmployeeManagement() {
                   {PERMISSION_LABELS.map((p) => {
                     const isOn = formPerms[p.key] === true;
                     return (
-                      <button
-                        key={p.key}
-                        type="button"
-                        onClick={() => togglePerm(p.key)}
-                        className="flex items-center justify-between w-full px-3 py-2 rounded-md border border-border hover:bg-muted/20 transition-colors"
-                      >
-                        <span className="text-sm text-foreground">{p.label}</span>
-                        <div
-                          className={`relative w-10 h-5 rounded-full transition-colors ${
-                            isOn ? "bg-primary" : "bg-muted"
-                          }`}
+                      <div key={p.key}>
+                        <button
+                          type="button"
+                          onClick={() => togglePerm(p.key)}
+                          className="flex items-center justify-between w-full px-3 py-2 rounded-md border border-border hover:bg-muted/20 transition-colors"
                         >
+                          <span className="text-sm text-foreground">{p.label}</span>
                           <div
-                            className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                              isOn ? "translate-x-5" : "translate-x-0.5"
+                            className={`relative w-10 h-5 rounded-full transition-colors ${
+                              isOn ? "bg-primary" : "bg-muted"
                             }`}
-                          />
-                        </div>
-                      </button>
+                          >
+                            <div
+                              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                                isOn ? "translate-x-5" : "translate-x-0.5"
+                              }`}
+                            />
+                          </div>
+                        </button>
+                        {isOn && p.warning && (
+                          <div className="mx-1 mt-1 px-3 py-2 rounded-md bg-orange-500/10 border border-orange-500/30 text-xs text-orange-400">
+                            {p.warning}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
