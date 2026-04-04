@@ -204,23 +204,23 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
             </div>
           ) : (
             <div className="glass-card mx-4 mb-4 overflow-hidden">
-              <div className="grid grid-cols-7 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20">
-                <div className="col-span-1 pl-8">Client</div>
+              <div className="grid gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20" style={{ gridTemplateColumns: "minmax(250px, 2fr) 90px 70px 70px 70px 3fr" }}>
+                <div className="pl-8">Clients</div>
                 <div>Status</div>
                 <div className="text-center">Seats</div>
                 <div className="text-center">Agents</div>
                 <div className="text-center">Appts</div>
-                <div className="col-span-2">Achievement</div>
+                <div>Achievement</div>
               </div>
 
               {clients.map((client) => (
                 <ExpandableRow
                   key={client.companyId}
                   header={
-                    <div className="grid grid-cols-7 gap-2 items-center py-2 pr-4">
-                      <div className="col-span-1">
-                        <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-primary/15 text-foreground truncate max-w-[180px]">
-                          <TruncatedName name={client.companyName} maxLen={20} />
+                    <div className="grid gap-2 items-center py-2 pr-4" style={{ gridTemplateColumns: "minmax(250px, 2fr) 90px 70px 70px 70px 3fr" }}>
+                      <div>
+                        <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-primary/15 text-foreground truncate max-w-[220px]">
+                          <TruncatedName name={client.companyName} maxLen={24} />
                         </span>
                       </div>
                       <div>
@@ -245,7 +245,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
                       <div className="text-center text-sm font-semibold text-foreground tabular-nums">
                         {client.totalAppointments}
                       </div>
-                      <div className="col-span-2">
+                      <div>
                         <ProgressBar percentage={client.achievement} />
                       </div>
                     </div>

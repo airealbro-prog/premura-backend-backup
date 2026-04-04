@@ -15,6 +15,9 @@ import {
   EyeOff,
   RefreshCw,
   Users,
+  ChevronDown,
+  ChevronRight,
+  Save,
 } from "lucide-react";
 
 const statusOptions = ["active", "paused", "churned"] as const;
@@ -109,6 +112,18 @@ export function SettingsView() {
   const [formSending, setFormSending] = useState(false);
   const [formMsg, setFormMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [createdCreds, setCreatedCreds] = useState<{ email: string; password: string } | null>(null);
+
+  // Edit existing user state
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editRole, setEditRole] = useState<"client" | "client_admin">("client");
+  const [editPerms, setEditPerms] = useState<Record<string, boolean | string[]>>({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMsg, setEditMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [newRow, setNewRow] = useState({
     company_id: "",
@@ -230,6 +245,84 @@ export function SettingsView() {
 
   const togglePerm = (key: string) => {
     setFormPerms((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleEditPerm = (key: string) => {
+    setEditPerms((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const startEditing = (u: ClientUser) => {
+    setEditingUserId(u.id);
+    setEditName((u.permissions.name as string) || "");
+    setEditEmail((u.permissions.email as string) || "");
+    setEditPassword("");
+    setShowEditPassword(false);
+    setEditRole(u.role as "client" | "client_admin");
+    setEditMsg(null);
+    setDeleteConfirmId(null);
+    // Build perms from existing
+    const perms: Record<string, boolean | string[]> = { ...getDefaultClientPerms() };
+    for (const key of Object.keys(perms)) {
+      if (key in u.permissions) {
+        perms[key] = u.permissions[key] as boolean | string[];
+      }
+    }
+    if (u.permissions.can_manage_users) {
+      perms.can_manage_users = true;
+    }
+    setEditPerms(perms);
+  };
+
+  const handleSaveUser = async (u: ClientUser) => {
+    setEditSaving(true);
+    setEditMsg(null);
+    try {
+      const updatedPerms: Record<string, unknown> = {
+        ...editPerms,
+        name: editName,
+        email: editEmail,
+      };
+      // client_admin gets can_view_settings and can_manage_users
+      if (editRole === "client_admin") {
+        updatedPerms.can_view_settings = true;
+      }
+
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .update({
+          role: editRole,
+          permissions: updatedPerms,
+        })
+        .eq("id", u.id);
+
+      if (roleError) throw roleError;
+
+      // Update password if provided
+      if (editPassword && isPasswordValid(editPassword)) {
+        try {
+          await (supabase.auth.admin as { updateUserById: (id: string, opts: Record<string, unknown>) => Promise<{ error: { message: string } | null }> }).updateUserById(u.user_id, {
+            password: editPassword,
+          });
+        } catch {
+          // Admin API may not be available — notify but don't fail
+          setEditMsg({ type: "success", text: "Role/permissions saved. Password update requires admin privileges." });
+          setEditSaving(false);
+          if (modalClient) fetchModalUsers(modalClient.company_id);
+          return;
+        }
+      }
+
+      setEditMsg({ type: "success", text: "User updated successfully!" });
+      if (modalClient) fetchModalUsers(modalClient.company_id);
+      // Close edit after short delay
+      setTimeout(() => {
+        setEditingUserId(null);
+        setEditMsg(null);
+      }, 1200);
+    } catch (err) {
+      setEditMsg({ type: "error", text: err instanceof Error ? err.message : "Failed to update user" });
+    }
+    setEditSaving(false);
   };
 
   const handleCreateUser = async () => {
@@ -355,7 +448,7 @@ export function SettingsView() {
         <>
           {/* Existing Clients */}
           <div className="glass-card overflow-x-auto mb-6">
-            <div className="grid grid-cols-9 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30 min-w-[1000px]">
+            <div className="grid gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30 min-w-[1000px]" style={{ gridTemplateColumns: "120px minmax(200px, 2fr) 70px 90px 120px 1fr 1fr 100px 40px" }}>
               <div>Company ID</div>
               <div>Company Name</div>
               <div>Seats</div>
@@ -369,7 +462,7 @@ export function SettingsView() {
             {clients.map((client) => {
               const userCount = clientUserCounts[client.company_id] || 0;
               return (
-                <div key={client.id} className="grid grid-cols-9 gap-2 px-4 py-3 items-center border-b border-border min-w-[1000px]">
+                <div key={client.id} className="grid gap-2 px-4 py-3 items-center border-b border-border min-w-[1000px]" style={{ gridTemplateColumns: "120px minmax(200px, 2fr) 70px 90px 120px 1fr 1fr 100px 40px" }}>
                   <div className="text-sm text-muted-foreground tabular-nums truncate" title={client.company_id}>
                     {client.company_id}
                   </div>
@@ -594,31 +687,205 @@ export function SettingsView() {
                 <p className="text-sm text-muted-foreground py-2">No users yet for this client.</p>
               ) : (
                 <div className="space-y-2">
-                  {modalUsers.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex items-center justify-between px-3 py-2 rounded-md border border-border"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground truncate">
-                          {(u.permissions.name as string) || "—"}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {(u.permissions.email as string) || u.user_id.slice(0, 8) + "..."}
-                        </div>
+                  {modalUsers.map((u) => {
+                    const isEditing = editingUserId === u.id;
+                    return (
+                      <div key={u.id} className="rounded-md border border-border overflow-hidden">
+                        {/* User row header — click to expand */}
+                        <button
+                          type="button"
+                          onClick={() => isEditing ? setEditingUserId(null) : startEditing(u)}
+                          className="flex items-center justify-between px-3 py-2 w-full text-left hover:bg-muted/20 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {isEditing ? <ChevronDown size={14} className="shrink-0 text-muted-foreground" /> : <ChevronRight size={14} className="shrink-0 text-muted-foreground" />}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {(u.permissions.name as string) || "—"}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {(u.permissions.email as string) || u.user_id.slice(0, 8) + "..."}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary mx-2 shrink-0">
+                            {u.role === "client_admin" ? "Admin" : "User"}
+                          </span>
+                        </button>
+
+                        {/* Expanded edit section */}
+                        {isEditing && (
+                          <div className="px-4 pb-4 pt-2 border-t border-border space-y-3 bg-muted/5">
+                            {/* Name */}
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Full Name</label>
+                              <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+
+                            {/* Email */}
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Email</label>
+                              <input
+                                type="email"
+                                value={editEmail}
+                                onChange={(e) => setEditEmail(e.target.value)}
+                                className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+
+                            {/* Password Reset */}
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Reset Password</label>
+                              <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                  <input
+                                    type={showEditPassword ? "text" : "password"}
+                                    value={editPassword}
+                                    onChange={(e) => setEditPassword(e.target.value)}
+                                    className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    placeholder="Leave blank to keep current"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowEditPassword(!showEditPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    tabIndex={-1}
+                                  >
+                                    {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                  </button>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditPassword(generatePassword()); setShowEditPassword(true); }}
+                                  className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap"
+                                >
+                                  <RefreshCw size={14} />
+                                  Generate
+                                </button>
+                              </div>
+                              {editPassword && (
+                                <div className="mt-2 space-y-1">
+                                  {PASSWORD_RULES.map((rule) => {
+                                    const met = validatePassword(editPassword)[rule.key];
+                                    return (
+                                      <div key={rule.key} className="flex items-center gap-1.5">
+                                        <Check size={12} className={met ? "text-blue-400" : "text-muted-foreground/40"} />
+                                        <span className={`text-xs ${met ? "text-blue-400" : "text-muted-foreground/60"}`}>{rule.label}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Role */}
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Role</label>
+                              <select
+                                value={editRole}
+                                onChange={(e) => setEditRole(e.target.value as "client" | "client_admin")}
+                                className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              >
+                                <option value="client">Client User</option>
+                                <option value="client_admin">Client Admin</option>
+                              </select>
+                            </div>
+
+                            {/* Permission toggles */}
+                            <div>
+                              <label className="block text-xs text-muted-foreground mb-2 uppercase tracking-wider">Permissions</label>
+                              <div className="space-y-1.5">
+                                {CLIENT_PERMISSION_LABELS.map((p) => {
+                                  const isOn = editPerms[p.key] === true;
+                                  return (
+                                    <button
+                                      key={p.key}
+                                      type="button"
+                                      onClick={() => toggleEditPerm(p.key)}
+                                      className="flex items-center justify-between w-full px-3 py-1.5 rounded-md border border-border hover:bg-muted/20 transition-colors"
+                                    >
+                                      <span className="text-sm text-foreground">{p.label}</span>
+                                      <div className={`relative w-9 h-[18px] rounded-full transition-colors ${isOn ? "bg-primary" : "bg-muted"}`}>
+                                        <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${isOn ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                                {/* Can manage users — only for client_admin */}
+                                {editRole === "client_admin" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleEditPerm("can_manage_users")}
+                                    className="flex items-center justify-between w-full px-3 py-1.5 rounded-md border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+                                  >
+                                    <span className="text-sm text-foreground font-medium">Can manage users</span>
+                                    <div className={`relative w-9 h-[18px] rounded-full transition-colors ${editPerms.can_manage_users === true ? "bg-primary" : "bg-muted"}`}>
+                                      <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform ${editPerms.can_manage_users === true ? "translate-x-[18px]" : "translate-x-[2px]"}`} />
+                                    </div>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Edit messages */}
+                            {editMsg && (
+                              <div className={`rounded-md px-3 py-2 text-sm ${
+                                editMsg.type === "success"
+                                  ? "bg-success/10 border border-success/30 text-success"
+                                  : "bg-destructive/10 border border-destructive/30 text-destructive"
+                              }`}>
+                                {editMsg.text}
+                              </div>
+                            )}
+
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                onClick={() => handleSaveUser(u)}
+                                disabled={editSaving || (editPassword !== "" && !isPasswordValid(editPassword))}
+                                className="flex-1 py-2 rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                              >
+                                {editSaving ? (
+                                  <><Loader2 size={14} className="animate-spin" /> Saving...</>
+                                ) : (
+                                  <><Save size={14} /> Save Changes</>
+                                )}
+                              </button>
+                              {deleteConfirmId === u.id ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs text-destructive">Delete?</span>
+                                  <button
+                                    onClick={() => { handleDeleteUser(u); setDeleteConfirmId(null); setEditingUserId(null); }}
+                                    className="px-2.5 py-1.5 rounded-md bg-destructive text-white text-xs font-medium hover:opacity-90 transition-opacity"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="px-2.5 py-1.5 rounded-md border border-border text-muted-foreground text-xs hover:text-foreground transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setDeleteConfirmId(u.id)}
+                                  className="px-3 py-2 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors text-sm font-medium flex items-center gap-1.5"
+                                >
+                                  <Trash2 size={14} /> Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary mx-2 shrink-0">
-                        {u.role === "client_admin" ? "Admin" : "User"}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteUser(u)}
-                        className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                        title="Remove user"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
