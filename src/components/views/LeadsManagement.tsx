@@ -12,6 +12,7 @@ import {
   ChevronUp,
   X,
   Columns3,
+  ExternalLink,
 } from "lucide-react";
 
 interface LeadsManagementProps {
@@ -23,11 +24,13 @@ interface ColumnDef {
   label: string;
   permKey?: "can_view_contacts" | "can_view_recordings" | "can_view_credit_scores";
   defaultVisible: boolean;
+  hideForClient?: boolean;
 }
 
 const ALL_COLUMNS: ColumnDef[] = [
   { key: "name", label: "Lead Name", defaultVisible: true },
-  { key: "Company Name", label: "Company Name", defaultVisible: true },
+  { key: "Company Name", label: "Company Name", defaultVisible: true, hideForClient: true },
+  { key: "contact_link", label: "Contact", defaultVisible: true },
   { key: "booked_for", label: "Booked For", defaultVisible: true },
   { key: "setter_name", label: "Setter", defaultVisible: true },
   { key: "phone_number", label: "Phone", permKey: "can_view_contacts", defaultVisible: true },
@@ -64,7 +67,6 @@ function CopyButton({ text }: { text: string }) {
 
 function formatBookedFor(raw: string | null): string {
   if (!raw) return "\u2014";
-  // Try to parse "Thursday, April 2, 2026 3:30 PM" style
   try {
     const d = new Date(raw);
     if (!isNaN(d.getTime())) {
@@ -80,6 +82,21 @@ function formatBookedFor(raw: string | null): string {
   return raw;
 }
 
+/** Parse recording_media_link which may be a plain URL or JSON array like ["https://..."] */
+function parseRecordingUrl(raw: string): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("[")) {
+    try {
+      const arr = JSON.parse(trimmed);
+      if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === "string") {
+        return arr[0];
+      }
+    } catch { /* fall through */ }
+  }
+  return trimmed;
+}
+
 export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   const { userRole, isAdmin, hasPermission } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -88,13 +105,16 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [clientFilter, setClientFilter] = useState<string>("");
 
-  // Initialize visible columns based on permissions
+  const isClientUser = userRole?.role === "client";
+
+  // Filter columns based on permissions and client role
   const permittedColumns = useMemo(() => {
     return ALL_COLUMNS.filter((col) => {
+      if (col.hideForClient && isClientUser) return false;
       if (!col.permKey) return true;
       return isAdmin || hasPermission(col.permKey);
     });
-  }, [isAdmin, hasPermission]);
+  }, [isAdmin, hasPermission, isClientUser]);
 
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => {
     return new Set(permittedColumns.filter((c) => c.defaultVisible).map((c) => c.key));
@@ -142,11 +162,11 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
 
   // Filter by client role
   const filteredByRole = useMemo(() => {
-    if (isAdmin || userRole?.role !== "client") return filteredByDate;
+    if (isAdmin || !isClientUser) return filteredByDate;
     const companyId = userRole?.company_id;
     if (!companyId) return [];
     return filteredByDate.filter((a) => a.company_id === companyId);
-  }, [filteredByDate, isAdmin, userRole]);
+  }, [filteredByDate, isAdmin, isClientUser, userRole]);
 
   // Filter by client dropdown
   const filtered = useMemo(() => {
@@ -186,8 +206,36 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     const str = val != null ? String(val) : "";
 
     switch (col.key) {
-      case "name":
+      case "name": {
+        const contactUrl = appt.contact_link || "";
+        if (contactUrl) {
+          return (
+            <a
+              href={contactUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+              title="Open in GoHighLevel"
+            >
+              {str || "\u2014"}
+            </a>
+          );
+        }
         return <span className="font-medium text-foreground">{str || "\u2014"}</span>;
+      }
+
+      case "contact_link":
+        return str ? (
+          <a
+            href={str}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex"
+            title="Open in GoHighLevel"
+          >
+            <ExternalLink size={12} />
+          </a>
+        ) : "\u2014";
 
       case "booked_for":
         return <span>{formatBookedFor(str || null)}</span>;
@@ -221,10 +269,11 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
           </button>
         );
 
-      case "recording_media_link":
-        return str ? (
+      case "recording_media_link": {
+        const url = parseRecordingUrl(str);
+        return url ? (
           <a
-            href={str}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex"
@@ -233,6 +282,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
             <Play size={12} />
           </a>
         ) : "\u2014";
+      }
 
       case "existing_solar":
         if (!str) return "\u2014";
@@ -259,9 +309,9 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 shrink-0">
         <h1 className="text-2xl font-bold text-primary mb-1">Leads Management</h1>
         <p className="text-muted-foreground text-sm">
           View and manage all appointment leads.
@@ -269,18 +319,20 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
       </div>
 
       {/* Filters row */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        {/* Client filter */}
-        <select
-          value={clientFilter}
-          onChange={(e) => setClientFilter(e.target.value)}
-          className="rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          <option value="">All Companies</option>
-          {companyNames.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
+      <div className="flex flex-wrap items-center gap-3 mb-3 shrink-0">
+        {/* Client filter — hidden for client users */}
+        {!isClientUser && (
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <option value="">All Companies</option>
+            {companyNames.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        )}
 
         {/* Date display */}
         <div className="text-xs text-muted-foreground">
@@ -334,18 +386,18 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="glass-card overflow-x-auto">
+      {/* Table in fixed-height scrollable container */}
+      <div className="glass-card flex-1 min-h-0 overflow-auto">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/30">
+          <thead className="sticky top-0 z-20">
+            <tr className="border-b border-border" style={{ background: "#111827" }}>
               {visibleColumns.map((col) => (
                 <th
                   key={col.key}
                   className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${
-                    col.key === "name" ? "sticky left-0 z-10 bg-muted/30" : ""
+                    col.key === "name" ? "sticky left-0 z-30" : ""
                   }`}
-                  style={col.key === "name" ? { background: "#111827" } : undefined}
+                  style={col.key === "name" ? { background: "#111827" } : { background: "#111827" }}
                 >
                   {col.label}
                 </th>
