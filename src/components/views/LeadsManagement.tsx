@@ -29,6 +29,7 @@ interface ColumnDef {
 
 const ALL_COLUMNS: ColumnDef[] = [
   { key: "name", label: "Lead Name", defaultVisible: true },
+  { key: "recording_media_link", label: "Recording", permKey: "can_view_recordings", defaultVisible: true },
   { key: "Company Name", label: "Company Name", defaultVisible: true, hideForClient: true },
   { key: "booked_for", label: "Booked For", defaultVisible: true },
   { key: "setter_name", label: "Setter", defaultVisible: true },
@@ -36,7 +37,6 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "email", label: "Email", permKey: "can_view_contacts", defaultVisible: true },
   { key: "notes", label: "Notes", defaultVisible: true },
   { key: "address", label: "Address", defaultVisible: true },
-  { key: "recording_media_link", label: "Recording", permKey: "can_view_recordings", defaultVisible: true },
   { key: "credit_score", label: "Credit Score", permKey: "can_view_credit_scores", defaultVisible: true },
   { key: "roof_type", label: "Roof Type", defaultVisible: false },
   { key: "existing_solar", label: "Existing Solar", defaultVisible: false },
@@ -356,6 +356,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     switch (col.key) {
       case "name": {
         const contactUrl = appt.contact_link || "";
+        const displayName = str.length > 25 ? `${str.slice(0, 25)}...` : str;
         if (contactUrl) {
           return (
             <a
@@ -363,13 +364,13 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-primary hover:underline"
-              title="Open in GoHighLevel"
+              title={str || "Open in GoHighLevel"}
             >
-              {str || "\u2014"}
+              {displayName || "\u2014"}
             </a>
           );
         }
-        return <span className="font-medium text-foreground">{str || "\u2014"}</span>;
+        return <span className="font-medium text-foreground" title={str}>{displayName || "\u2014"}</span>;
       }
 
       case "booked_for":
@@ -528,7 +529,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
                     className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${
                       col.key === "name" ? "sticky left-0 z-30" : ""
                     }`}
-                    style={{ background: "#111827" }}
+                    style={col.key === "name" ? { background: "#111827", maxWidth: "180px" } : { background: "#111827" }}
                   >
                     {col.label}
                   </th>
@@ -551,7 +552,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
                         className={`px-3 py-2.5 text-sm text-foreground whitespace-nowrap ${
                           col.key === "name" ? "sticky left-0 z-10 font-medium" : ""
                         } ${col.key === "notes" ? "!whitespace-normal max-w-[250px]" : ""}`}
-                        style={col.key === "name" ? { background: "#111827" } : undefined}
+                        style={col.key === "name" ? { background: "#111827", maxWidth: "180px" } : undefined}
                       >
                         {renderCell(appt, col)}
                       </td>
