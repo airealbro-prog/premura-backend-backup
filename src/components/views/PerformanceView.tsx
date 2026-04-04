@@ -204,7 +204,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
             </div>
           ) : (
             <div className="glass-card mx-4 mb-4 overflow-hidden">
-              <div className="grid gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20" style={{ gridTemplateColumns: "minmax(250px, 2fr) 90px 70px 70px 70px 3fr" }}>
+              <div className="grid gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20" style={{ gridTemplateColumns: "minmax(250px, 2fr) 90px 70px 70px 70px 3fr" }}>
                 <div className="pl-8">Clients</div>
                 <div>Status</div>
                 <div className="text-center">Seats</div>
@@ -217,7 +217,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
                 <ExpandableRow
                   key={client.companyId}
                   header={
-                    <div className="grid gap-2 items-center py-2 pr-4" style={{ gridTemplateColumns: "minmax(250px, 2fr) 90px 70px 70px 70px 3fr" }}>
+                    <div className="grid gap-4 items-center py-2 pr-4" style={{ gridTemplateColumns: "minmax(250px, 2fr) 90px 70px 70px 70px 3fr" }}>
                       <div>
                         <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-primary/15 text-foreground truncate max-w-[220px]">
                           <TruncatedName name={client.companyName} maxLen={24} />

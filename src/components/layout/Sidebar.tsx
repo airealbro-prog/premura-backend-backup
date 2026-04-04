@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3,
@@ -14,6 +14,7 @@ import {
 import type { ViewType } from "@/types";
 import { useAuth } from "@/lib/auth";
 import type { UserPermissions } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import premuraLogo from "@/assets/premura-logo-transparent.png";
 
 interface SidebarProps {
@@ -36,8 +37,23 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
 
   const isClient = userRole?.role === "client";
   const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
-  const brandName = (isClient || isClientAdmin) && userRole?.permissions?.name
-    ? userRole.permissions.name
+  const [companyName, setCompanyName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if ((isClient || isClientAdmin) && userRole?.company_id) {
+      supabase
+        .from("clients")
+        .select("company_name")
+        .eq("company_id", userRole.company_id)
+        .single()
+        .then(({ data }) => {
+          if (data?.company_name) setCompanyName(data.company_name);
+        });
+    }
+  }, [isClient, isClientAdmin, userRole?.company_id]);
+
+  const brandName = (isClient || isClientAdmin)
+    ? companyName || (userRole?.permissions?.name as string) || "Client"
     : "Premura";
 
   const visibleItems = navItems.filter((item) => {

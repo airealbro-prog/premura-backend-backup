@@ -256,7 +256,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   // Audio player state
   const [playerTrack, setPlayerTrack] = useState<{ url: string; leadName: string } | null>(null);
 
-  const isClientUser = userRole?.role === "client";
+  const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
 
   const permittedColumns = useMemo(() => {
     return ALL_COLUMNS.filter((col) => {
@@ -266,7 +266,16 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     });
   }, [isAdmin, hasPermission, isClientUser]);
 
+  const STORAGE_KEY = "leads-column-visibility";
+
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (Array.isArray(parsed)) return new Set(parsed);
+      }
+    } catch { /* ignore */ }
     return new Set(permittedColumns.filter((c) => c.defaultVisible).map((c) => c.key));
   });
 
@@ -346,6 +355,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))); } catch { /* ignore */ }
       return next;
     });
   };
@@ -528,17 +538,26 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-20">
               <tr className="border-b border-border" style={{ background: "#111827" }}>
-                {visibleColumns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${
-                      col.key === "name" ? "sticky left-0 z-30" : ""
-                    }`}
-                    style={col.key === "name" ? { background: "#111827", maxWidth: "180px" } : { background: "#111827" }}
-                  >
-                    {col.label}
-                  </th>
-                ))}
+                {visibleColumns.map((col) => {
+                  const isSticky = col.key === "name" || col.key === "recording_media_link";
+                  const stickyLeft = col.key === "name" ? 0 : col.key === "recording_media_link" ? (visibleKeys.has("name") ? 180 : 0) : undefined;
+                  return (
+                    <th
+                      key={col.key}
+                      className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${
+                        isSticky ? "sticky z-30" : ""
+                      }`}
+                      style={{
+                        background: "#111827",
+                        ...(isSticky ? { left: stickyLeft } : {}),
+                        ...(col.key === "name" ? { minWidth: 180, maxWidth: 180 } : {}),
+                        ...(col.key === "recording_media_link" ? { minWidth: 90 } : {}),
+                      }}
+                    >
+                      {col.label}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -551,17 +570,25 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
               ) : (
                 filtered.map((appt) => (
                   <tr key={appt.id} className="border-b border-border hover:bg-muted/10 transition-colors">
-                    {visibleColumns.map((col) => (
-                      <td
-                        key={col.key}
-                        className={`px-3 py-2.5 text-sm text-foreground whitespace-nowrap ${
-                          col.key === "name" ? "sticky left-0 z-10 font-medium" : ""
-                        } ${col.key === "notes" ? "!whitespace-normal max-w-[250px]" : ""}`}
-                        style={col.key === "name" ? { background: "#111827", maxWidth: "180px" } : undefined}
-                      >
-                        {renderCell(appt, col)}
-                      </td>
-                    ))}
+                    {visibleColumns.map((col) => {
+                      const isSticky = col.key === "name" || col.key === "recording_media_link";
+                      const stickyLeft = col.key === "name" ? 0 : col.key === "recording_media_link" ? (visibleKeys.has("name") ? 180 : 0) : undefined;
+                      return (
+                        <td
+                          key={col.key}
+                          className={`px-3 py-2.5 text-sm text-foreground whitespace-nowrap ${
+                            isSticky ? "sticky z-10" : ""
+                          } ${col.key === "name" ? "font-medium" : ""} ${col.key === "notes" ? "!whitespace-normal max-w-[250px]" : ""}`}
+                          style={{
+                            ...(isSticky ? { background: "#111827", left: stickyLeft } : {}),
+                            ...(col.key === "name" ? { minWidth: 180, maxWidth: 180 } : {}),
+                            ...(col.key === "recording_media_link" ? { minWidth: 90 } : {}),
+                          }}
+                        >
+                          {renderCell(appt, col)}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))
               )}
