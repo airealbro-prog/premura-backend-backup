@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { getEffectiveDateRange, getEarliestDate, toInputDate } from "@/lib/dateUtils";
@@ -8,11 +8,11 @@ import {
   Copy,
   Check,
   Play,
+  Pause,
   ChevronDown,
   ChevronUp,
   X,
   Columns3,
-  ExternalLink,
 } from "lucide-react";
 
 interface LeadsManagementProps {
@@ -30,7 +30,6 @@ interface ColumnDef {
 const ALL_COLUMNS: ColumnDef[] = [
   { key: "name", label: "Lead Name", defaultVisible: true },
   { key: "Company Name", label: "Company Name", defaultVisible: true, hideForClient: true },
-  { key: "contact_link", label: "Contact", defaultVisible: true },
   { key: "booked_for", label: "Booked For", defaultVisible: true },
   { key: "setter_name", label: "Setter", defaultVisible: true },
   { key: "phone_number", label: "Phone", permKey: "can_view_contacts", defaultVisible: true },
@@ -82,7 +81,6 @@ function formatBookedFor(raw: string | null): string {
   return raw;
 }
 
-/** Parse recording_media_link which may be a plain URL or JSON array like ["https://..."] */
 function parseRecordingUrl(raw: string): string | null {
   if (!raw) return null;
   const trimmed = raw.trim();
@@ -97,6 +95,156 @@ function parseRecordingUrl(raw: string): string | null {
   return trimmed;
 }
 
+function formatTime(seconds: number): string {
+  if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+interface AudioPlayerProps {
+  url: string;
+  leadName: string;
+  onClose: () => void;
+}
+
+function AudioPlayer({ url, leadName, onClose }: AudioPlayerProps) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onDurationChange = () => setDuration(audio.duration);
+    const onEnded = () => setPlaying(false);
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("durationchange", onDurationChange);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("durationchange", onDurationChange);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+    };
+  }, []);
+
+  // Auto-play when URL changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.load();
+    audio.play().catch(() => {});
+  }, [url]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+    } else {
+      audio.play().catch(() => {});
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const t = parseFloat(e.target.value);
+    audio.currentTime = t;
+    setCurrentTime(t);
+  };
+
+  const handleClose = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    onClose();
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div
+      className="shrink-0 border-t border-border px-4 py-3 flex items-center gap-4"
+      style={{ background: "#1e293b" }}
+    >
+      <audio ref={audioRef} src={url} preload="metadata" />
+
+      {/* Play/Pause */}
+      <button
+        onClick={togglePlay}
+        className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white hover:bg-primary/80 transition-colors shrink-0"
+      >
+        {playing ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+      </button>
+
+      {/* Lead name */}
+      <div className="text-sm text-foreground font-medium truncate min-w-[100px] max-w-[180px]">
+        {leadName}
+      </div>
+
+      {/* Time current */}
+      <span className="text-xs text-muted-foreground tabular-nums w-10 text-right shrink-0">
+        {formatTime(currentTime)}
+      </span>
+
+      {/* Seek bar */}
+      <div className="flex-1 relative h-5 flex items-center">
+        {/* Track bg */}
+        <div className="absolute inset-x-0 h-1.5 rounded-full bg-muted/40" />
+        {/* Track fill */}
+        <div
+          className="absolute left-0 h-1.5 rounded-full bg-primary"
+          style={{ width: `${progress}%` }}
+        />
+        {/* Invisible range input for seeking */}
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          step={0.1}
+          value={currentTime}
+          onChange={handleSeek}
+          className="absolute inset-0 w-full opacity-0 cursor-pointer"
+          style={{ height: "20px" }}
+        />
+        {/* Thumb dot */}
+        <div
+          className="absolute w-3 h-3 rounded-full bg-primary border-2 border-white shadow-sm pointer-events-none"
+          style={{ left: `calc(${progress}% - 6px)` }}
+        />
+      </div>
+
+      {/* Time total */}
+      <span className="text-xs text-muted-foreground tabular-nums w-10 shrink-0">
+        {formatTime(duration)}
+      </span>
+
+      {/* Close */}
+      <button
+        onClick={handleClose}
+        className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        title="Close player"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   const { userRole, isAdmin, hasPermission } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -105,9 +253,11 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [clientFilter, setClientFilter] = useState<string>("");
 
+  // Audio player state
+  const [playerTrack, setPlayerTrack] = useState<{ url: string; leadName: string } | null>(null);
+
   const isClientUser = userRole?.role === "client";
 
-  // Filter columns based on permissions and client role
   const permittedColumns = useMemo(() => {
     return ALL_COLUMNS.filter((col) => {
       if (col.hideForClient && isClientUser) return false;
@@ -137,9 +287,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     const channel = supabase
@@ -149,7 +297,6 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  // Filter by date range
   const filteredByDate = useMemo(() => {
     const earliest = getEarliestDate(appointments);
     const { start, end } = getEffectiveDateRange(dateRange.start, dateRange.end, earliest);
@@ -160,7 +307,6 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     });
   }, [appointments, dateRange]);
 
-  // Filter by client role
   const filteredByRole = useMemo(() => {
     if (isAdmin || !isClientUser) return filteredByDate;
     const companyId = userRole?.company_id;
@@ -168,13 +314,11 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     return filteredByDate.filter((a) => a.company_id === companyId);
   }, [filteredByDate, isAdmin, isClientUser, userRole]);
 
-  // Filter by client dropdown
   const filtered = useMemo(() => {
     if (!clientFilter) return filteredByRole;
     return filteredByRole.filter((a) => a["Company Name"] === clientFilter);
   }, [filteredByRole, clientFilter]);
 
-  // Unique company names for filter
   const companyNames = useMemo(() => {
     const names = new Set<string>();
     filteredByRole.forEach((a) => {
@@ -201,6 +345,10 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     });
   };
 
+  const playRecording = (url: string, leadName: string) => {
+    setPlayerTrack({ url, leadName });
+  };
+
   const renderCell = (appt: Appointment, col: ColumnDef) => {
     const val = (appt as unknown as Record<string, unknown>)[col.key];
     const str = val != null ? String(val) : "";
@@ -223,19 +371,6 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
         }
         return <span className="font-medium text-foreground">{str || "\u2014"}</span>;
       }
-
-      case "contact_link":
-        return str ? (
-          <a
-            href={str}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex"
-            title="Open in GoHighLevel"
-          >
-            <ExternalLink size={12} />
-          </a>
-        ) : "\u2014";
 
       case "booked_for":
         return <span>{formatBookedFor(str || null)}</span>;
@@ -272,15 +407,13 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
       case "recording_media_link": {
         const url = parseRecordingUrl(str);
         return url ? (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => playRecording(url, appt.name || "Unknown")}
             className="p-1.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex"
             title="Play recording"
           >
             <Play size={12} />
-          </a>
+          </button>
         ) : "\u2014";
       }
 
@@ -320,7 +453,6 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
 
       {/* Filters row */}
       <div className="flex flex-wrap items-center gap-3 mb-3 shrink-0">
-        {/* Client filter — hidden for client users */}
         {!isClientUser && (
           <select
             value={clientFilter}
@@ -334,7 +466,6 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
           </select>
         )}
 
-        {/* Date display */}
         <div className="text-xs text-muted-foreground">
           {dateRange.start ? toInputDate(dateRange.start) : "All time"} — {dateRange.end ? toInputDate(dateRange.end) : "Now"}
         </div>
@@ -343,7 +474,6 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
           {filtered.length} lead{filtered.length !== 1 ? "s" : ""}
         </div>
 
-        {/* Column visibility */}
         <div className="relative">
           <button
             onClick={() => setShowColumnPicker(!showColumnPicker)}
@@ -387,49 +517,60 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
       </div>
 
       {/* Table in fixed-height scrollable container */}
-      <div className="glass-card flex-1 min-h-0 overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-20">
-            <tr className="border-b border-border" style={{ background: "#111827" }}>
-              {visibleColumns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${
-                    col.key === "name" ? "sticky left-0 z-30" : ""
-                  }`}
-                  style={col.key === "name" ? { background: "#111827" } : { background: "#111827" }}
-                >
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={visibleColumns.length} className="text-center py-12 text-muted-foreground">
-                  No leads found for the selected filters.
-                </td>
+      <div className="glass-card flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 z-20">
+              <tr className="border-b border-border" style={{ background: "#111827" }}>
+                {visibleColumns.map((col) => (
+                  <th
+                    key={col.key}
+                    className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${
+                      col.key === "name" ? "sticky left-0 z-30" : ""
+                    }`}
+                    style={{ background: "#111827" }}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
-            ) : (
-              filtered.map((appt) => (
-                <tr key={appt.id} className="border-b border-border hover:bg-muted/10 transition-colors">
-                  {visibleColumns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`px-3 py-2.5 text-sm text-foreground whitespace-nowrap ${
-                        col.key === "name" ? "sticky left-0 z-10 font-medium" : ""
-                      } ${col.key === "notes" ? "!whitespace-normal max-w-[250px]" : ""}`}
-                      style={col.key === "name" ? { background: "#111827" } : undefined}
-                    >
-                      {renderCell(appt, col)}
-                    </td>
-                  ))}
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleColumns.length} className="text-center py-12 text-muted-foreground">
+                    No leads found for the selected filters.
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filtered.map((appt) => (
+                  <tr key={appt.id} className="border-b border-border hover:bg-muted/10 transition-colors">
+                    {visibleColumns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={`px-3 py-2.5 text-sm text-foreground whitespace-nowrap ${
+                          col.key === "name" ? "sticky left-0 z-10 font-medium" : ""
+                        } ${col.key === "notes" ? "!whitespace-normal max-w-[250px]" : ""}`}
+                        style={col.key === "name" ? { background: "#111827" } : undefined}
+                      >
+                        {renderCell(appt, col)}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Inline audio player — fixed to bottom of table container */}
+        {playerTrack && (
+          <AudioPlayer
+            url={playerTrack.url}
+            leadName={playerTrack.leadName}
+            onClose={() => setPlayerTrack(null)}
+          />
+        )}
       </div>
     </div>
   );
