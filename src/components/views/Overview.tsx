@@ -77,6 +77,8 @@ function renderPieLabel(props: any) {
 export function Overview({ dateRange }: OverviewProps) {
   const { userRole } = useAuth();
   const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+  const [allClients, setAllClients] = useState<Client[]>([]);
   const [stats, setStats] = useState({
     totalClients: 0,
     totalActiveAgents: 0,
@@ -114,8 +116,15 @@ export function Overview({ dateRange }: OverviewProps) {
       if (clientsRes.error) throw clientsRes.error;
       if (appointmentsRes.error) throw appointmentsRes.error;
 
-      const allClients: Client[] = clientsRes.data ?? [];
+      const fetchedClients: Client[] = clientsRes.data ?? [];
       const allAppointments: Appointment[] = appointmentsRes.data ?? [];
+
+      setAllClients(fetchedClients);
+
+      // Apply client filter if selected
+      const allClients = selectedCompanyId
+        ? fetchedClients.filter((c) => c.company_id === selectedCompanyId)
+        : fetchedClients;
 
       const earliest = getEarliestDate(allAppointments);
       const { start: rangeStart, end: rangeEnd } = getEffectiveDateRange(
@@ -125,7 +134,11 @@ export function Overview({ dateRange }: OverviewProps) {
 
       const { groups } = groupAppointmentsByClient(allAppointments, allClients);
 
-      const allRangeAppts = allAppointments.filter((a) => {
+      const filteredAppointments = selectedCompanyId
+        ? allAppointments.filter((a) => a.company_id === selectedCompanyId)
+        : allAppointments;
+
+      const allRangeAppts = filteredAppointments.filter((a) => {
         if (!a.created_at) return false;
         const d = new Date(a.created_at);
         return d >= rangeStart && d <= rangeEnd;
@@ -185,7 +198,7 @@ export function Overview({ dateRange }: OverviewProps) {
     } finally {
       setLoading(false);
     }
-  }, [dateRange, userRole]);
+  }, [dateRange, userRole, selectedCompanyId]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
@@ -313,6 +326,24 @@ export function Overview({ dateRange }: OverviewProps) {
             Real-time overview of all campaigns and agent performance.
           </p>
         </div>
+
+        {/* Client Filter */}
+        {!isClientUser && (
+          <div className="mb-6">
+            <select
+              value={selectedCompanyId}
+              onChange={(e) => setSelectedCompanyId(e.target.value)}
+              className="rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">All Clients</option>
+              {allClients.map((c) => (
+                <option key={c.company_id} value={c.company_id}>
+                  {c.company_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Top Stats */}
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${isClientUser ? "lg:grid-cols-4" : "lg:grid-cols-5"} gap-4 mb-8`}>

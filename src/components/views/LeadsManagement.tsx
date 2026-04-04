@@ -545,7 +545,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
                     <th
                       key={col.key}
                       className={`px-3 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${
-                        isSticky ? "sticky z-30" : ""
+                        isSticky ? "sticky z-30 border-r border-border/50" : ""
                       }`}
                       style={{
                         background: "#111827",
@@ -577,7 +577,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
                         <td
                           key={col.key}
                           className={`px-3 py-2.5 text-sm text-foreground whitespace-nowrap ${
-                            isSticky ? "sticky z-10" : ""
+                            isSticky ? "sticky z-10 border-r border-border/50" : ""
                           } ${col.key === "name" ? "font-medium" : ""} ${col.key === "notes" ? "!whitespace-normal max-w-[250px]" : ""}`}
                           style={{
                             ...(isSticky ? { background: "#111827", left: stickyLeft } : {}),
