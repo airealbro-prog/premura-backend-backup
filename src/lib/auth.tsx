@@ -68,24 +68,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRole = useCallback(async (userId: string) => {
     try {
+      // Use .maybeSingle() instead of .single() to avoid errors when row doesn't exist
       const { data, error } = await supabase
         .from("user_roles")
         .select("role, company_id, permissions")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
-        // No role found — default to restricted
+      if (error) {
+        console.error("[Auth] user_roles query error:", error.message, error.details, error.hint, { userId });
         setUserRole(null);
         return;
       }
+      if (!data) {
+        console.warn("[Auth] No role found for user:", userId);
+        setUserRole(null);
+        return;
+      }
+      console.log("[Auth] User role loaded:", data.role, "company_id:", data.company_id);
       const perms = (data.permissions ?? {}) as Partial<UserPermissions>;
       setUserRole({
         role: data.role,
         company_id: data.company_id,
         permissions: { ...DEFAULT_PERMISSIONS, ...perms },
       });
-    } catch {
+    } catch (err) {
+      console.error("[Auth] fetchUserRole exception:", err);
       setUserRole(null);
     }
   }, []);
