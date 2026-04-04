@@ -151,6 +151,7 @@ export function EmployeeManagement() {
   // Remove confirmation
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeSending, setRemoveSending] = useState(false);
+  const [removeWarning, setRemoveWarning] = useState<string | null>(null);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -196,6 +197,7 @@ export function EmployeeManagement() {
     setShowResetPassword(false);
     setResetMsg(null);
     setShowRemoveConfirm(false);
+    setRemoveWarning(null);
     setShowModal(true);
   };
 
@@ -212,6 +214,7 @@ export function EmployeeManagement() {
     setShowResetPassword(false);
     setResetMsg(null);
     setShowRemoveConfirm(false);
+    setRemoveWarning(null);
     setShowModal(true);
   };
 
@@ -256,7 +259,7 @@ export function EmployeeManagement() {
   };
 
   const handleSendResetLink = async () => {
-    const email = editingEmployee?.permissions.email;
+    const email = formEmail || editingEmployee?.permissions.email;
     if (!email) {
       setResetMsg("No email on file for this employee.");
       return;
@@ -279,18 +282,24 @@ export function EmployeeManagement() {
   const handleRemoveEmployee = async () => {
     if (!editingEmployee) return;
     setRemoveSending(true);
-    try {
-      // Delete from user_roles
-      await supabase.from("user_roles").delete().eq("id", editingEmployee.id);
+    setRemoveWarning(null);
 
-      // Try to delete from auth.users via admin API
-      try {
-        await (supabase.auth.admin as { deleteUser: (id: string) => Promise<{ error: { message: string } | null }> }).deleteUser(editingEmployee.user_id);
-      } catch {
-        // Admin API not available from client — role is removed, auth user remains
+    try {
+      // Try RPC that deletes from both user_roles and auth.users
+      const { error: rpcError } = await supabase.rpc("delete_user_completely", {
+        target_user_id: editingEmployee.user_id,
+      });
+
+      if (rpcError) {
+        // RPC doesn't exist or failed — fallback to user_roles only
+        console.warn("[EmployeeManagement] RPC delete_user_completely failed:", rpcError.message);
+        await supabase.from("user_roles").delete().eq("id", editingEmployee.id);
+        setRemoveWarning("Role removed, but the auth account may need manual cleanup in Supabase dashboard.");
       }
 
-      setShowModal(false);
+      if (!removeWarning) {
+        setShowModal(false);
+      }
       fetchEmployees();
     } catch {
       setErrorMsg("Failed to remove employee.");
@@ -303,13 +312,11 @@ export function EmployeeManagement() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const permissionsJson: Record<string, unknown> = { ...formPerms, name: formName };
+    const permissionsJson: Record<string, unknown> = { ...formPerms, name: formName, email: formEmail };
 
     try {
       if (editingEmployee) {
-        // Preserve the email in permissions
-        permissionsJson.email = editingEmployee.permissions.email ?? formEmail;
-
+        // Update user_roles
         const { error } = await supabase
           .from("user_roles")
           .update({
@@ -321,11 +328,27 @@ export function EmployeeManagement() {
 
         if (error) {
           setErrorMsg(error.message);
-        } else {
-          setSuccessMsg("Employee updated successfully.");
-          fetchEmployees();
-          setTimeout(() => setShowModal(false), 1200);
+          setSending(false);
+          return;
         }
+
+        // If email changed, update in auth.users
+        const oldEmail = editingEmployee.permissions.email;
+        if (formEmail && formEmail !== oldEmail) {
+          try {
+            const adminRes = await (supabase.auth.admin as { updateUserById: (id: string, opts: Record<string, unknown>) => Promise<{ error: { message: string } | null }> }).updateUserById(
+              editingEmployee.user_id,
+              { email: formEmail }
+            );
+            if (adminRes.error) throw new Error(adminRes.error.message);
+          } catch {
+            // Admin API unavailable — email updated in permissions only
+          }
+        }
+
+        setSuccessMsg("Employee updated successfully.");
+        fetchEmployees();
+        setTimeout(() => setShowModal(false), 1200);
       } else {
         // Create new user
         if (!formEmail) {
@@ -338,9 +361,6 @@ export function EmployeeManagement() {
           setSending(false);
           return;
         }
-
-        // Store email in permissions JSON
-        permissionsJson.email = formEmail;
 
         let newUserId: string | undefined;
 
@@ -399,8 +419,6 @@ export function EmployeeManagement() {
     }
     setSending(false);
   };
-
-  const employeeEmail = editingEmployee?.permissions.email;
 
   return (
     <div>
@@ -508,7 +526,7 @@ export function EmployeeManagement() {
             </div>
 
             <div className="space-y-4">
-              {/* Name */}
+              {/* 1. Full Name */}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                   Full Name
@@ -522,35 +540,88 @@ export function EmployeeManagement() {
                 />
               </div>
 
-              {/* Email — read-only for edit, editable for new */}
+              {/* 2. Email (editable for both create and edit) */}
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="employee@company.com"
+                />
+              </div>
+
+              {/* 3. Password section */}
               {editingEmployee ? (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                    Email
-                  </label>
-                  <div className="w-full rounded-md border border-border bg-muted/20 text-muted-foreground px-3 py-2 text-sm flex items-center gap-2">
-                    <Mail size={14} />
-                    {employeeEmail || <span className="italic">No email on file</span>}
+                /* Edit mode: password reset */
+                <div className="rounded-md border border-border p-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <KeyRound size={14} className="text-muted-foreground" />
+                    <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                      Reset Password
+                    </label>
                   </div>
+
+                  <div className="flex gap-2">
+                    <PasswordField
+                      value={resetPassword}
+                      onChange={setResetPassword}
+                      show={showResetPassword}
+                      onToggleShow={() => setShowResetPassword(!showResetPassword)}
+                      placeholder="New password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetPassword(generatePassword());
+                        setShowResetPassword(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap"
+                      title="Generate Password"
+                    >
+                      <RefreshCw size={14} />
+                      Generate
+                    </button>
+                  </div>
+
+                  <PasswordValidationChecklist password={resetPassword} />
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      disabled={resetSending || !resetPassword || !isPasswordValid(resetPassword)}
+                      className="flex-1 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {resetSending ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                      Update Password
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendResetLink}
+                      disabled={resetSending || !formEmail}
+                      className="flex-1 py-2 rounded-md border border-border bg-card hover:bg-muted/30 text-foreground font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {resetSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                      Send Reset Link
+                    </button>
+                  </div>
+
+                  {resetMsg && (
+                    <div className={`rounded-md px-3 py-2 text-xs ${
+                      resetMsg.startsWith("Error")
+                        ? "bg-destructive/10 border border-destructive/30 text-destructive"
+                        : "bg-success/10 border border-success/30 text-success"
+                    }`}>
+                      {resetMsg}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                    className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    placeholder="employee@company.com"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Password — only for new */}
-              {!editingEmployee && (
+                /* Create mode: set initial password */
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                     Password
@@ -579,7 +650,7 @@ export function EmployeeManagement() {
                 </div>
               )}
 
-              {/* Role */}
+              {/* 4. Role */}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                   Role
@@ -594,7 +665,7 @@ export function EmployeeManagement() {
                 </select>
               </div>
 
-              {/* Permission toggles */}
+              {/* 5. Permission toggles */}
               <div>
                 <label className="block text-xs text-muted-foreground mb-3 uppercase tracking-wider">
                   Permissions
@@ -649,7 +720,7 @@ export function EmployeeManagement() {
                 </div>
               )}
 
-              {/* Submit */}
+              {/* 6. Save Changes / Create Employee button */}
               <button
                 onClick={handleSubmit}
                 disabled={sending || (!editingEmployee && (!formEmail || !formPassword || !isPasswordValid(formPassword))) || !!createdCredentials}
@@ -667,119 +738,56 @@ export function EmployeeManagement() {
                 )}
               </button>
 
-              {/* ---- Edit-only sections ---- */}
+              {/* 7. Remove Employee (edit only, at bottom) */}
               {editingEmployee && (
-                <>
-                  {/* Divider */}
-                  <div className="border-t border-border pt-4 mt-2">
-                    <div className="flex items-center gap-2 mb-3">
-                      <KeyRound size={14} className="text-muted-foreground" />
-                      <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                        Reset Password
-                      </label>
+                <div className="border-t border-border pt-4 mt-2">
+                  {removeWarning && (
+                    <div className="rounded-md bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-xs text-amber-400 mb-3 flex items-start gap-2">
+                      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                      {removeWarning}
                     </div>
-
-                    {/* New password input */}
-                    <div className="flex gap-2 mb-1">
-                      <PasswordField
-                        value={resetPassword}
-                        onChange={setResetPassword}
-                        show={showResetPassword}
-                        onToggleShow={() => setShowResetPassword(!showResetPassword)}
-                        placeholder="New password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setResetPassword(generatePassword());
-                          setShowResetPassword(true);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap"
-                        title="Generate Password"
-                      >
-                        <RefreshCw size={14} />
-                        Generate
-                      </button>
-                    </div>
-
-                    <PasswordValidationChecklist password={resetPassword} />
-
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        type="button"
-                        onClick={handleResetPassword}
-                        disabled={resetSending || !resetPassword || !isPasswordValid(resetPassword)}
-                        className="flex-1 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {resetSending ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
-                        Update Password
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSendResetLink}
-                        disabled={resetSending || !employeeEmail}
-                        className="flex-1 py-2 rounded-md border border-border bg-card hover:bg-muted/30 text-foreground font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {resetSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                        Send Reset Link
-                      </button>
-                    </div>
-
-                    {resetMsg && (
-                      <div className={`mt-2 rounded-md px-3 py-2 text-xs ${
-                        resetMsg.startsWith("Error")
-                          ? "bg-destructive/10 border border-destructive/30 text-destructive"
-                          : "bg-success/10 border border-success/30 text-success"
-                      }`}>
-                        {resetMsg}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Remove Employee */}
-                  <div className="border-t border-border pt-4 mt-2">
-                    {!showRemoveConfirm ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowRemoveConfirm(true)}
-                        className="w-full py-2.5 rounded-md border border-destructive/40 bg-destructive/10 text-destructive font-medium text-sm transition-all hover:bg-destructive/20 flex items-center justify-center gap-2"
-                      >
-                        <Trash2 size={14} />
-                        Remove Employee
-                      </button>
-                    ) : (
-                      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 space-y-3">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle size={16} className="text-destructive shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium text-destructive">Are you sure?</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              This will remove {formName || "this employee"} from the dashboard and delete their account. This action cannot be undone.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={handleRemoveEmployee}
-                            disabled={removeSending}
-                            className="flex-1 py-2 rounded-md bg-destructive text-white font-medium text-sm transition-all hover:bg-destructive/90 disabled:opacity-40 flex items-center justify-center gap-2"
-                          >
-                            {removeSending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                            Yes, Remove
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowRemoveConfirm(false)}
-                            className="flex-1 py-2 rounded-md border border-border bg-card text-foreground font-medium text-sm transition-all hover:bg-muted/30"
-                          >
-                            Cancel
-                          </button>
+                  )}
+                  {!showRemoveConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowRemoveConfirm(true)}
+                      className="w-full py-2.5 rounded-md border border-destructive/40 bg-destructive/10 text-destructive font-medium text-sm transition-all hover:bg-destructive/20 flex items-center justify-center gap-2"
+                    >
+                      <Trash2 size={14} />
+                      Remove Employee
+                    </button>
+                  ) : (
+                    <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle size={16} className="text-destructive shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-destructive">Are you sure?</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            This will remove {formName || "this employee"} from the dashboard and delete their account. This action cannot be undone.
+                          </p>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleRemoveEmployee}
+                          disabled={removeSending}
+                          className="flex-1 py-2 rounded-md bg-destructive text-white font-medium text-sm transition-all hover:bg-destructive/90 disabled:opacity-40 flex items-center justify-center gap-2"
+                        >
+                          {removeSending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          Yes, Remove
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowRemoveConfirm(false)}
+                          className="flex-1 py-2 rounded-md border border-border bg-card text-foreground font-medium text-sm transition-all hover:bg-muted/30"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
