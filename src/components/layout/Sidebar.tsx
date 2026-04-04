@@ -13,7 +13,7 @@ import {
 import type { ViewType } from "@/types";
 import { useAuth } from "@/lib/auth";
 import type { UserPermissions } from "@/lib/auth";
-import premuraLogo from "@/assets/PREMURA.PNG";
+import premuraLogo from "@/assets/premura-logo-transparent.png";
 
 interface SidebarProps {
   activeView: ViewType;
@@ -30,11 +30,16 @@ const navItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey
 
 export function Sidebar({ activeView, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, isAdmin, hasPermission, signOut } = useAuth();
+  const { user, userRole, isAdmin, hasPermission, signOut } = useAuth();
 
   const visibleItems = navItems.filter(
     (item) => isAdmin || hasPermission(item.permKey)
   );
+
+  const isClient = userRole?.role === "client";
+  const brandName = isClient && userRole?.permissions?.name
+    ? userRole.permissions.name
+    : "Premura";
 
   return (
     <motion.aside
@@ -52,7 +57,7 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
         />
         {!collapsed && (
           <span className="text-white text-lg font-bold tracking-wide truncate">
-            Premura
+            {brandName}
           </span>
         )}
       </div>
