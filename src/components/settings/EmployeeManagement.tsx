@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { UserPermissions } from "@/lib/auth";
-import { Plus, Pencil, Trash2, X, Loader2, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, Check, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -45,6 +45,11 @@ function summarizePermissions(perms: UserPermissions): string {
   return `${on}/${PERMISSION_LABELS.length} enabled`;
 }
 
+function generatePassword(): string {
+  const digits = Math.floor(1000 + Math.random() * 9000);
+  return `Premura${digits}!`;
+}
+
 export function EmployeeManagement() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,8 +62,11 @@ export function EmployeeManagement() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
+  const [formPassword, setFormPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formRole, setFormRole] = useState<"backend_employee" | "frontend_employee">("backend_employee");
   const [formPerms, setFormPerms] = useState<UserPermissions>(getDefaultPermissions());
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -95,10 +103,13 @@ export function EmployeeManagement() {
     setEditingEmployee(null);
     setFormName("");
     setFormEmail("");
+    setFormPassword("");
+    setShowPassword(false);
     setFormRole("backend_employee");
     setFormPerms(getDefaultPermissions());
     setSuccessMsg(null);
     setErrorMsg(null);
+    setCreatedCredentials(null);
     setShowModal(true);
   };
 
@@ -149,28 +160,49 @@ export function EmployeeManagement() {
           setTimeout(() => setShowModal(false), 1200);
         }
       } else {
-        // Create new user via signUp
+        // Create new user
         if (!formEmail) {
           setErrorMsg("Email is required.");
           setSending(false);
           return;
         }
-
-        // Generate random temporary password
-        const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
-
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: formEmail,
-          password: tempPassword,
-        });
-
-        if (signUpError) {
-          setErrorMsg(signUpError.message);
+        if (!formPassword) {
+          setErrorMsg("Password is required.");
           setSending(false);
           return;
         }
 
-        const newUserId = signUpData.user?.id;
+        let newUserId: string | undefined;
+
+        // Try admin API first (requires service_role key)
+        try {
+          const adminRes = await (supabase.auth.admin as { createUser: (opts: Record<string, unknown>) => Promise<{ data: { user?: { id: string } | null }; error: { message: string } | null }> }).createUser({
+            email: formEmail,
+            password: formPassword,
+            email_confirm: true,
+            user_metadata: { name: formName },
+          });
+
+          if (adminRes.error) throw new Error(adminRes.error.message);
+          newUserId = adminRes.data.user?.id;
+        } catch {
+          // Fallback: use signUp (client-side)
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: formEmail,
+            password: formPassword,
+            options: {
+              data: { name: formName },
+            },
+          });
+
+          if (signUpError) {
+            setErrorMsg(signUpError.message);
+            setSending(false);
+            return;
+          }
+          newUserId = signUpData.user?.id;
+        }
+
         if (!newUserId) {
           setErrorMsg("Failed to create user account.");
           setSending(false);
@@ -187,9 +219,9 @@ export function EmployeeManagement() {
         if (roleError) {
           setErrorMsg(roleError.message);
         } else {
-          setSuccessMsg(`Invitation sent to ${formEmail}`);
+          setCreatedCredentials({ email: formEmail, password: formPassword });
+          setSuccessMsg(`Employee created successfully!`);
           fetchEmployees();
-          setTimeout(() => setShowModal(false), 2000);
         }
       }
     } catch (err) {
@@ -215,7 +247,7 @@ export function EmployeeManagement() {
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-primary hover:opacity-90 transition-opacity"
         >
           <Plus size={14} />
-          Invite Employee
+          Add Employee
         </button>
       </div>
 
@@ -235,7 +267,7 @@ export function EmployeeManagement() {
           </div>
         ) : employees.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-8">
-            No employees yet. Click "Invite Employee" to add one.
+            No employees yet. Click "Add Employee" to create one.
           </div>
         ) : (
           employees.map((emp) => (
@@ -293,7 +325,7 @@ export function EmployeeManagement() {
           >
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-foreground">
-                {editingEmployee ? "Edit Employee" : "Invite Employee"}
+                {editingEmployee ? "Edit Employee" : "Create Employee"}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -318,7 +350,7 @@ export function EmployeeManagement() {
                 />
               </div>
 
-              {/* Email — only for new invite */}
+              {/* Email — only for new */}
               {!editingEmployee && (
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
@@ -332,6 +364,47 @@ export function EmployeeManagement() {
                     placeholder="employee@company.com"
                     required
                   />
+                </div>
+              )}
+
+              {/* Password — only for new */}
+              {!editingEmployee && (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={formPassword}
+                        onChange={(e) => setFormPassword(e.target.value)}
+                        className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        placeholder="Enter password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormPassword(generatePassword());
+                        setShowPassword(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap"
+                      title="Generate Password"
+                    >
+                      <RefreshCw size={14} />
+                      Generate
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -390,27 +463,36 @@ export function EmployeeManagement() {
                 </div>
               )}
               {successMsg && (
-                <div className="rounded-md bg-success/10 border border-success/30 px-3 py-2 text-sm text-success flex items-center gap-2">
-                  <Check size={14} />
-                  {successMsg}
+                <div className="rounded-md bg-success/10 border border-success/30 px-3 py-2 text-sm text-success">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Check size={14} />
+                    {successMsg}
+                  </div>
+                  {createdCredentials && (
+                    <div className="mt-2 p-2 rounded bg-card border border-border text-foreground text-xs font-mono space-y-1">
+                      <div><span className="text-muted-foreground">Email:</span> {createdCredentials.email}</div>
+                      <div><span className="text-muted-foreground">Password:</span> {createdCredentials.password}</div>
+                      <p className="text-muted-foreground text-[10px] mt-1">Copy these credentials and share them with the employee.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Submit */}
               <button
                 onClick={handleSubmit}
-                disabled={sending || (!editingEmployee && !formEmail)}
+                disabled={sending || (!editingEmployee && (!formEmail || !formPassword)) || !!createdCredentials}
                 className="w-full py-2.5 rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {sending ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    {editingEmployee ? "Saving..." : "Sending..."}
+                    {editingEmployee ? "Saving..." : "Creating..."}
                   </>
                 ) : editingEmployee ? (
                   "Save Changes"
                 ) : (
-                  "Send Invitation"
+                  "Create Employee"
                 )}
               </button>
             </div>
