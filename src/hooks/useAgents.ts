@@ -30,7 +30,7 @@ export function useAgents(filters: FilterState) {
       let clientsQuery = supabase.from("clients").select("*");
       let appointmentsQuery = supabase.from("appointments_new").select("*");
 
-      if (userRole?.role === "client" && userRole.company_id) {
+      if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
         appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
       }
@@ -75,7 +75,7 @@ export function useAgents(filters: FilterState) {
           const activeSetters = new Set<string>();
           rangeAppointments.forEach((a) => {
             if (a.setter_name) {
-              activeSetters.add(a.setter_name);
+              activeSetters.add(a.setter_name.trim());
             }
           });
 
@@ -83,7 +83,7 @@ export function useAgents(filters: FilterState) {
 
           const agents: AgentMetrics[] = Array.from(activeSetters)
             .map((setterName) => {
-              const agentAppts = validAppointments.filter((a) => a.setter_name === setterName);
+              const agentAppts = validAppointments.filter((a) => a.setter_name?.trim() === setterName);
               const apptCount = agentAppts.length;
 
               return {

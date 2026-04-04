@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useHistorical } from "@/hooks/useHistorical";
 import type { HistoricalClientRow } from "@/hooks/useHistorical";
+import { useAuth } from "@/lib/auth";
 import { FilterBar } from "@/components/layout/FilterBar";
 import { ExpandableRow } from "@/components/shared/ExpandableRow";
 import { WeeklyChart } from "@/components/shared/WeeklyChart";
@@ -19,26 +20,29 @@ interface HistoricalAnalysisProps {
 }
 
 export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnalysisProps) {
+  const { userRole } = useAuth();
+  const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
   const [viewMode, setViewMode] = useState<"weekly" | "monthly">("weekly");
   const { rows, periods, loading, error } = useHistorical(filters, viewMode);
   const [clientOptions, setClientOptions] = useState<{ id: string; name: string }[]>([]);
   const [selectedClient, setSelectedClient] = useState<HistoricalClientRow | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("clients")
-      .select("company_id, company_name")
-      .then(({ data }) => {
-        if (data) {
-          setClientOptions(
-            data.map((d: Pick<Client, "company_id" | "company_name">) => ({
-              id: d.company_id,
-              name: d.company_name,
-            }))
-          );
-        }
-      });
-  }, []);
+    let query = supabase.from("clients").select("company_id, company_name");
+    if (isClientUser && userRole?.company_id) {
+      query = query.eq("company_id", userRole.company_id);
+    }
+    query.then(({ data }) => {
+      if (data) {
+        setClientOptions(
+          data.map((d: Pick<Client, "company_id" | "company_name">) => ({
+            id: d.company_id,
+            name: d.company_name,
+          }))
+        );
+      }
+    });
+  }, [isClientUser, userRole]);
 
   if (error) {
     return (
@@ -84,7 +88,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
           <FilterBar
             filters={filters}
             onFiltersChange={onFiltersChange}
-            clientOptions={clientOptions}
+            clientOptions={isClientUser ? [] : clientOptions}
             showAchievementFilter={false}
             searchPlaceholder="Search agents..."
           />

@@ -34,7 +34,7 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
       let clientsQuery = supabase.from("clients").select("*");
       let appointmentsQuery = supabase.from("appointments_new").select("*");
 
-      if (userRole?.role === "client" && userRole.company_id) {
+      if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
         appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
       }
@@ -76,10 +76,10 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
           // Active agents in global date range
           const activeSetters = new Set<string>();
           companyAppts.forEach((a) => {
-            if (a.setter_name && a.created_at) {
+            if (a.setter_name?.trim() && a.created_at) {
               const d = new Date(a.created_at);
               if (d >= rangeStart && d <= rangeEnd) {
-                activeSetters.add(a.setter_name);
+                activeSetters.add(a.setter_name.trim());
               }
             }
           });
@@ -104,7 +104,7 @@ export function useHistorical(filters: FilterState, viewMode: "weekly" | "monthl
               return true;
             })
             .map((setter) => {
-              const agentAppts = validAppts.filter((a) => a.setter_name === setter);
+              const agentAppts = validAppts.filter((a) => a.setter_name?.trim() === setter);
               const agentCells: HistoricalCell[] = timePeriods.map((period) => {
                 const count = agentAppts.filter((a) => {
                   if (!a.created_at) return false;

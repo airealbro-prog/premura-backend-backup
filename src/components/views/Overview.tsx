@@ -77,6 +77,7 @@ function renderPieLabel(props: any) {
 
 export function Overview({ dateRange }: OverviewProps) {
   const { userRole } = useAuth();
+  const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
   const [stats, setStats] = useState({
     totalClients: 0,
     totalActiveAgents: 0,
@@ -101,7 +102,7 @@ export function Overview({ dateRange }: OverviewProps) {
       let clientsQuery = supabase.from("clients").select("*");
       let appointmentsQuery = supabase.from("appointments_new").select("*");
 
-      if (userRole?.role === "client" && userRole.company_id) {
+      if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
         appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
       }
@@ -315,12 +316,14 @@ export function Overview({ dateRange }: OverviewProps) {
         </div>
 
         {/* Top Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <StatCard
-            label="Active Clients"
-            value={stats.totalClients}
-            icon={<Building2 size={16} className="text-primary" />}
-          />
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${isClientUser ? "lg:grid-cols-4" : "lg:grid-cols-5"} gap-4 mb-8`}>
+          {!isClientUser && (
+            <StatCard
+              label="Active Clients"
+              value={stats.totalClients}
+              icon={<Building2 size={16} className="text-primary" />}
+            />
+          )}
           <StatCard
             label="Active Agents"
             value={stats.totalActiveAgents}
@@ -347,7 +350,7 @@ export function Overview({ dateRange }: OverviewProps) {
         {/* Client Campaign Health */}
         <div className="glass-card p-5 mb-8">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-            Campaign Health
+            {isClientUser ? "Your Campaign" : "Campaign Health"}
           </h2>
           <AnimatePresence>
             {stats.clientSummaries.length === 0 ? (

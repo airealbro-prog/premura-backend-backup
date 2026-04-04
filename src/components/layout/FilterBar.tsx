@@ -49,23 +49,25 @@ export function FilterBar({
         </div>
       )}
 
-      {/* Client Select */}
-      <div className="relative">
-        <select
-          value={filters.selectedClients[0] ?? ""}
-          onChange={(e) => {
-            const val = e.target.value;
-            onFiltersChange({ ...filters, selectedClients: val ? [val] : [] });
-          }}
-          className="pl-3 pr-8 py-2 text-sm rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 appearance-none cursor-pointer min-w-[150px]"
-        >
-          <option value="">All Clients</option>
-          {clientOptions.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-      </div>
+      {/* Client Select — hidden when no options (e.g. client users) */}
+      {clientOptions.length > 0 && (
+        <div className="relative">
+          <select
+            value={filters.selectedClients[0] ?? ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              onFiltersChange({ ...filters, selectedClients: val ? [val] : [] });
+            }}
+            className="pl-3 pr-8 py-2 text-sm rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 appearance-none cursor-pointer min-w-[150px]"
+          >
+            <option value="">All Clients</option>
+            {clientOptions.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        </div>
+      )}
 
       {/* Achievement Tier */}
       {showAchievementFilter && (

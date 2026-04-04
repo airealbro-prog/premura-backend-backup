@@ -25,7 +25,7 @@ export function useClients(filters: FilterState) {
       let clientsQuery = supabase.from("clients").select("*");
       let appointmentsQuery = supabase.from("appointments_new").select("*");
 
-      if (userRole?.role === "client" && userRole.company_id) {
+      if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
         appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
       }
@@ -74,15 +74,15 @@ export function useClients(filters: FilterState) {
           // Active agents: distinct setter_names with appointments in date range
           const activeSetters = new Set<string>();
           rangeAppointments.forEach((a) => {
-            if (a.setter_name) {
-              activeSetters.add(a.setter_name);
+            if (a.setter_name?.trim()) {
+              activeSetters.add(a.setter_name.trim());
             }
           });
 
           // Agent-level metrics
           const agents: AgentMetrics[] = Array.from(activeSetters).map((setterName) => {
             const agentValidAppts = validAppointments.filter(
-              (a) => a.setter_name === setterName
+              (a) => a.setter_name?.trim() === setterName
             );
             const apptCount = agentValidAppts.length;
 

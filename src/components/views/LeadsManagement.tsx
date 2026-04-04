@@ -278,14 +278,19 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("appointments_new").select("*");
+      let query = supabase.from("appointments_new").select("*");
+      // Client users only see their own company's data
+      if (isClientUser && userRole?.company_id) {
+        query = query.eq("company_id", userRole.company_id);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       setAppointments((data as Appointment[]) ?? []);
     } catch (err) {
       console.error("[LeadsManagement] fetch error:", err);
     }
     setLoading(false);
-  }, []);
+  }, [isClientUser, userRole]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

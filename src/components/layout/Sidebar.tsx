@@ -34,14 +34,22 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { user, userRole, isAdmin, hasPermission, signOut } = useAuth();
 
-  const visibleItems = navItems.filter(
-    (item) => isAdmin || hasPermission(item.permKey)
-  );
-
   const isClient = userRole?.role === "client";
-  const brandName = isClient && userRole?.permissions?.name
+  const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
+  const brandName = (isClient || isClientAdmin) && userRole?.permissions?.name
     ? userRole.permissions.name
     : "Premura";
+
+  const visibleItems = navItems.filter((item) => {
+    // Agency admins see everything
+    if (isAdmin) return true;
+    // Client users: hide Leaderboard entirely, hide Settings unless client_admin
+    if (isClient || isClientAdmin) {
+      if (item.view === "leaderboard") return false;
+      if (item.view === "settings" && !isClientAdmin) return false;
+    }
+    return hasPermission(item.permKey);
+  });
 
   return (
     <motion.aside

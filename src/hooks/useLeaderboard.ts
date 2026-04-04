@@ -49,7 +49,7 @@ export function useLeaderboard(filters: FilterState) {
       let clientsQuery = supabase.from("clients").select("*");
       let appointmentsQuery = supabase.from("appointments_new").select("*");
 
-      if (userRole?.role === "client" && userRole.company_id) {
+      if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
         appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
       }
@@ -113,10 +113,10 @@ export function useLeaderboard(filters: FilterState) {
         // Active setters in range
         const activeSetters = new Set<string>();
         companyAppts.forEach((a) => {
-          if (a.setter_name && a.created_at) {
+          if (a.setter_name?.trim() && a.created_at) {
             const d = new Date(a.created_at);
             if (d >= rangeStart && d <= rangeEnd) {
-              activeSetters.add(a.setter_name);
+              activeSetters.add(a.setter_name.trim());
             }
           }
         });
@@ -124,7 +124,7 @@ export function useLeaderboard(filters: FilterState) {
         for (const setter of activeSetters) {
           const valid = companyAppts.filter(
             (a) =>
-              a.setter_name === setter &&
+              a.setter_name?.trim() === setter &&
               isValidAppointment(a) &&
               a.created_at &&
               new Date(a.created_at) >= rangeStart &&
