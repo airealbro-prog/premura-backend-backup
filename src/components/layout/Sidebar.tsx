@@ -54,6 +54,8 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
   const { user, userRole, isAdmin, hasPermission, signOut } = useAuth();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+  const switcherBtnRef = useRef<HTMLButtonElement>(null);
+  const [switcherPos, setSwitcherPos] = useState({ top: 0, left: 0 });
 
   const isClient = userRole?.role === "client";
   const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
@@ -118,57 +120,21 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
             <div className="flex flex-col min-w-0 flex-1">
               <span className="text-white text-lg font-bold tracking-wide leading-tight">Premura</span>
               {showDashboardSwitcher && (
-                <div className="relative" ref={switcherRef}>
+                <div ref={switcherRef}>
                   <button
-                    onClick={() => setSwitcherOpen(!switcherOpen)}
+                    ref={switcherBtnRef}
+                    onClick={() => {
+                      if (!switcherOpen && switcherBtnRef.current) {
+                        const rect = switcherBtnRef.current.getBoundingClientRect();
+                        setSwitcherPos({ top: rect.bottom + 4, left: rect.left });
+                      }
+                      setSwitcherOpen(!switcherOpen);
+                    }}
                     className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors -mt-0.5"
                   >
                     <span className="capitalize">{dashboardMode}</span>
                     <ChevronDown size={10} className={`transition-transform ${switcherOpen ? "rotate-180" : ""}`} />
                   </button>
-
-                  {/* Dropdown */}
-                  <AnimatePresence>
-                    {switcherOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute left-0 top-full mt-1 w-48 rounded-lg border border-border shadow-xl z-50 py-1"
-                        style={{ background: "#1e293b" }}
-                      >
-                        <button
-                          onClick={() => handleSwitchMode("backend")}
-                          className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
-                            dashboardMode === "backend"
-                              ? "text-primary bg-primary/10"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
-                          }`}
-                        >
-                          <Monitor size={15} />
-                          <div className="text-left">
-                            <div className="font-medium">Backend Dashboard</div>
-                            <div className="text-[10px] text-muted-foreground">Call center & appointments</div>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => handleSwitchMode("frontend")}
-                          className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
-                            dashboardMode === "frontend"
-                              ? "text-primary bg-primary/10"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
-                          }`}
-                        >
-                          <Globe size={15} />
-                          <div className="text-left">
-                            <div className="font-medium">Frontend Dashboard</div>
-                            <div className="text-[10px] text-muted-foreground">Sales pipeline & leads</div>
-                          </div>
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               )}
             </div>
@@ -242,6 +208,53 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
 
   return (
     <>
+      {/* Dashboard mode switcher dropdown — rendered fixed to escape overflow */}
+      <AnimatePresence>
+        {switcherOpen && (
+          <>
+            <div className="fixed inset-0 z-[60]" onClick={() => setSwitcherOpen(false)} />
+            <motion.div
+              ref={switcherRef}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="fixed w-52 rounded-lg border border-border shadow-2xl z-[61] py-1"
+              style={{ background: "#1e293b", top: switcherPos.top, left: switcherPos.left }}
+            >
+              <button
+                onClick={() => handleSwitchMode("backend")}
+                className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                  dashboardMode === "backend"
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                }`}
+              >
+                <Monitor size={15} className="shrink-0" />
+                <div className="text-left">
+                  <div className="font-medium">Backend Dashboard</div>
+                  <div className="text-[10px] text-muted-foreground">Call center & appointments</div>
+                </div>
+              </button>
+              <button
+                onClick={() => handleSwitchMode("frontend")}
+                className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                  dashboardMode === "frontend"
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                }`}
+              >
+                <Globe size={15} className="shrink-0" />
+                <div className="text-left">
+                  <div className="font-medium">Frontend Dashboard</div>
+                  <div className="text-[10px] text-muted-foreground">Sales pipeline & leads</div>
+                </div>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Desktop sidebar */}
       <motion.aside
         animate={{ width: collapsed ? 64 : 220 }}
