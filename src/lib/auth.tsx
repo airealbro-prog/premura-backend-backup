@@ -37,12 +37,44 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   restricted_client_ids: [],
 };
 
+// --- Impersonation helpers ---
+const IMPERSONATE_KEY = "premura_impersonate";
+
+export interface ImpersonateData {
+  user_id: string;
+  role: string;
+  company_id: string | null;
+  permissions: Record<string, unknown>;
+  name: string;
+}
+
+export function startImpersonation(data: ImpersonateData) {
+  sessionStorage.setItem(IMPERSONATE_KEY, JSON.stringify(data));
+  window.open("/", "_blank");
+}
+
+export function getImpersonation(): ImpersonateData | null {
+  try {
+    const raw = sessionStorage.getItem(IMPERSONATE_KEY);
+    if (raw) return JSON.parse(raw) as ImpersonateData;
+  } catch { /* ignore */ }
+  return null;
+}
+
+export function clearImpersonation() {
+  sessionStorage.removeItem(IMPERSONATE_KEY);
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   userRole: UserRole | null;
   loading: boolean;
   isAdmin: boolean;
+  isImpersonating: boolean;
+  impersonateName: string | null;
+  impersonateRole: string | null;
+  exitImpersonation: () => void;
   hasPermission: (key: keyof UserPermissions) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -59,6 +91,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Impersonation state
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [impersonateName, setImpersonateName] = useState<string | null>(null);
+  const [impersonateRole, setImpersonateRole] = useState<string | null>(null);
+
+  const exitImpersonation = useCallback(() => {
+    clearImpersonation();
+    window.location.reload();
+  }, []);
+
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(async () => {
@@ -68,6 +110,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRole = useCallback(async (userId: string, userEmail?: string) => {
     type RoleRow = { role: UserRole["role"]; company_id: string | null; permissions: Record<string, unknown> };
+
+    // Check for impersonation override
+    const impersonate = getImpersonation();
+    if (impersonate) {
+      const perms = (impersonate.permissions ?? {}) as Partial<UserPermissions>;
+      setUserRole({
+        role: impersonate.role as UserRole["role"],
+        company_id: impersonate.company_id,
+        permissions: { ...DEFAULT_PERMISSIONS, ...perms },
+      });
+      setIsImpersonating(true);
+      setImpersonateName(impersonate.name || "Unknown");
+      setImpersonateRole(impersonate.role);
+      return;
+    }
 
     // Helper to apply role data
     const applyRole = (data: RoleRow) => {
@@ -222,21 +279,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    clearImpersonation();
     try { await supabase.auth.signOut(); } catch {}
   }, []);
 
-  const isAdmin = userRole?.role === "agency_admin";
+  // When impersonating, isAdmin should be false (view as the impersonated user)
+  const isAdmin = isImpersonating ? false : userRole?.role === "agency_admin";
 
   const hasPermission = useCallback((key: keyof UserPermissions) => {
     if (!userRole) return false;
-    if (userRole.role === "agency_admin") return true;
+    if (!isImpersonating && userRole.role === "agency_admin") return true;
     const val = userRole.permissions[key];
     if (typeof val === "boolean") return val;
     return true; // default allow for non-boolean
-  }, [userRole]);
+  }, [userRole, isImpersonating]);
 
   return (
-    <AuthContext.Provider value={{ session, user, userRole, loading, isAdmin, hasPermission, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, userRole, loading, isAdmin, isImpersonating, impersonateName, impersonateRole, exitImpersonation, hasPermission, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

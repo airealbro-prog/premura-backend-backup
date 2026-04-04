@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth";
+import { useAuth, startImpersonation } from "@/lib/auth";
 import { EmployeeManagement } from "@/components/settings/EmployeeManagement";
 import type { Client } from "@/types";
 import { motion } from "framer-motion";
@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronRight,
   Save,
+  UserCheck,
 } from "lucide-react";
 
 const statusOptions = ["active", "paused", "churned"] as const;
@@ -88,7 +89,9 @@ interface ClientUser {
 }
 
 export function SettingsView() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, userRole } = useAuth();
+  const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
+  const canManageUsers = isClientAdmin && (userRole?.permissions as unknown as Record<string, unknown>)?.can_manage_users === true;
   const [tab, setTab] = useState<SettingsTab>("clients");
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -212,6 +215,14 @@ export function SettingsView() {
     setModalUsersLoading(false);
   }, []);
 
+  // Auto-load users for client_admin's own company
+  useEffect(() => {
+    if (isClientAdmin && userRole?.company_id) {
+      fetchModalUsers(userRole.company_id);
+      setLoading(false);
+    }
+  }, [isClientAdmin, userRole?.company_id, fetchModalUsers]);
+
   const openModal = (client: Client) => {
     setModalClient(client);
     setFormName("");
@@ -240,7 +251,8 @@ export function SettingsView() {
     if (rpcError) {
       await supabase.from("user_roles").delete().eq("id", user.id);
     }
-    if (modalClient) fetchModalUsers(modalClient.company_id);
+    const cid = modalClient?.company_id ?? (isClientAdmin ? userRole?.company_id : null);
+    if (cid) fetchModalUsers(cid);
   };
 
   const togglePerm = (key: string) => {
@@ -307,13 +319,15 @@ export function SettingsView() {
           // Admin API may not be available — notify but don't fail
           setEditMsg({ type: "success", text: "Role/permissions saved. Password update requires admin privileges." });
           setEditSaving(false);
-          if (modalClient) fetchModalUsers(modalClient.company_id);
+          const cid = modalClient?.company_id ?? (isClientAdmin ? userRole?.company_id : null);
+    if (cid) fetchModalUsers(cid);
           return;
         }
       }
 
       setEditMsg({ type: "success", text: "User updated successfully!" });
-      if (modalClient) fetchModalUsers(modalClient.company_id);
+      const cid = modalClient?.company_id ?? (isClientAdmin ? userRole?.company_id : null);
+    if (cid) fetchModalUsers(cid);
       // Close edit after short delay
       setTimeout(() => {
         setEditingUserId(null);
@@ -326,7 +340,8 @@ export function SettingsView() {
   };
 
   const handleCreateUser = async () => {
-    if (!modalClient || !formEmail || !formPassword) return;
+    const companyId = modalClient?.company_id ?? (isClientAdmin ? userRole?.company_id : null);
+    if (!companyId || !formEmail || !formPassword) return;
     setFormSending(true);
     setFormMsg(null);
     setCreatedCreds(null);
@@ -373,7 +388,7 @@ export function SettingsView() {
       const { error: roleError } = await supabase.from("user_roles").insert({
         user_id: newUserId,
         role: formRole,
-        company_id: modalClient.company_id,
+        company_id: companyId,
         permissions: permissionsJson,
       });
 
@@ -382,7 +397,7 @@ export function SettingsView() {
       } else {
         setCreatedCreds({ email: formEmail, password: formPassword });
         setFormMsg({ type: "success", text: "User created successfully!" });
-        fetchModalUsers(modalClient.company_id);
+        fetchModalUsers(companyId);
         // Reset form for next user
         setFormName("");
         setFormEmail("");
@@ -395,11 +410,191 @@ export function SettingsView() {
     setFormSending(false);
   };
 
-  if (loading) {
+  if (loading && !isClientAdmin) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 size={24} className="animate-spin text-primary" />
       </div>
+    );
+  }
+
+  // --- Client Admin: simplified User Management view ---
+  if (isClientAdmin) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="p-6 max-w-2xl"
+      >
+        <h1 className="text-xl font-bold text-primary mb-1">User Management</h1>
+        <p className="text-muted-foreground text-sm mb-6">
+          Manage users on your account.
+        </p>
+
+        {/* Existing users */}
+        <div className="glass-card p-5 mb-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Current Users
+          </h2>
+          {modalUsersLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 size={16} className="animate-spin text-muted-foreground" />
+            </div>
+          ) : modalUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No users yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {modalUsers.map((u) => {
+                const isEditing = editingUserId === u.id;
+                return (
+                  <div key={u.id} className="rounded-md border border-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => isEditing ? setEditingUserId(null) : startEditing(u)}
+                      className="flex items-center justify-between px-3 py-2 w-full text-left hover:bg-muted/20 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {isEditing ? <ChevronDown size={14} className="shrink-0 text-muted-foreground" /> : <ChevronRight size={14} className="shrink-0 text-muted-foreground" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">
+                            {(u.permissions.name as string) || "—"}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {(u.permissions.email as string) || u.user_id.slice(0, 8) + "..."}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary mx-2 shrink-0">
+                        {u.role === "client_admin" ? "Admin" : "User"}
+                      </span>
+                    </button>
+                    {isEditing && (
+                      <div className="px-4 pb-4 pt-2 border-t border-border space-y-3 bg-muted/5">
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Full Name</label>
+                          <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Email</label>
+                          <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Role</label>
+                          <select value={editRole} onChange={(e) => setEditRole(e.target.value as "client" | "client_admin")} className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            <option value="client">Client User</option>
+                            <option value="client_admin">Client Admin</option>
+                          </select>
+                        </div>
+                        {editMsg && (
+                          <div className={`rounded-md px-3 py-2 text-sm ${editMsg.type === "success" ? "bg-success/10 border border-success/30 text-success" : "bg-destructive/10 border border-destructive/30 text-destructive"}`}>
+                            {editMsg.text}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={() => handleSaveUser(u)}
+                            disabled={editSaving}
+                            className="flex-1 py-2 rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            {editSaving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Save size={14} /> Save Changes</>}
+                          </button>
+                          {deleteConfirmId === u.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-destructive">Delete?</span>
+                              <button onClick={() => { handleDeleteUser(u); setDeleteConfirmId(null); setEditingUserId(null); }} className="px-2.5 py-1.5 rounded-md bg-destructive text-white text-xs font-medium hover:opacity-90 transition-opacity">Confirm</button>
+                              <button onClick={() => setDeleteConfirmId(null)} className="px-2.5 py-1.5 rounded-md border border-border text-muted-foreground text-xs hover:text-foreground transition-colors">Cancel</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setDeleteConfirmId(u.id)} className="px-3 py-2 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors text-sm font-medium flex items-center gap-1.5">
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Add User section (only if canManageUsers) */}
+        {canManageUsers && (
+          <div className="glass-card p-5">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Add User
+            </h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Full Name</label>
+                <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="John Doe" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Email</label>
+                <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="user@company.com" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Password</label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input type={showPassword ? "text" : "password"} value={formPassword} onChange={(e) => setFormPassword(e.target.value)} className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Enter password" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <button type="button" onClick={() => { setFormPassword(generatePassword()); setShowPassword(true); }} className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap">
+                    <RefreshCw size={14} /> Generate
+                  </button>
+                </div>
+                {formPassword && (
+                  <div className="mt-2 space-y-1">
+                    {PASSWORD_RULES.map((rule) => {
+                      const met = validatePassword(formPassword)[rule.key];
+                      return (
+                        <div key={rule.key} className="flex items-center gap-1.5">
+                          <Check size={12} className={met ? "text-blue-400" : "text-muted-foreground/40"} />
+                          <span className={`text-xs ${met ? "text-blue-400" : "text-muted-foreground/60"}`}>{rule.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Role</label>
+                <select value={formRole} onChange={(e) => setFormRole(e.target.value as "client" | "client_admin")} className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                  <option value="client">Client User</option>
+                  <option value="client_admin">Client Admin</option>
+                </select>
+              </div>
+              {formMsg && (
+                <div className={`rounded-md px-3 py-2 text-sm ${formMsg.type === "success" ? "bg-success/10 border border-success/30 text-success" : "bg-destructive/10 border border-destructive/30 text-destructive"}`}>
+                  <div className="flex items-center gap-2">
+                    {formMsg.type === "success" && <Check size={14} />}
+                    {formMsg.text}
+                  </div>
+                  {createdCreds && (
+                    <div className="mt-2 p-2 rounded bg-card border border-border text-foreground text-xs font-mono space-y-1">
+                      <div><span className="text-muted-foreground">Email:</span> {createdCreds.email}</div>
+                      <div><span className="text-muted-foreground">Password:</span> {createdCreds.password}</div>
+                      <p className="text-muted-foreground text-[10px] mt-1">Copy these credentials and share them with the user.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={handleCreateUser}
+                disabled={formSending || !formEmail || !formPassword || !isPasswordValid(formPassword)}
+                className="w-full py-2.5 rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {formSending ? <><Loader2 size={16} className="animate-spin" /> Creating...</> : <><UserPlus size={16} /> Create User</>}
+              </button>
+            </div>
+          </div>
+        )}
+      </motion.div>
     );
   }
 
@@ -711,6 +906,26 @@ export function SettingsView() {
                           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary mx-2 shrink-0">
                             {u.role === "client_admin" ? "Admin" : "User"}
                           </span>
+                          {isAdmin && (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startImpersonation({
+                                  user_id: u.user_id,
+                                  role: u.role,
+                                  company_id: modalClient?.company_id ?? null,
+                                  permissions: u.permissions,
+                                  name: (u.permissions.name as string) || "Client User",
+                                });
+                              }}
+                              className="p-1 rounded hover:bg-orange-500/20 text-muted-foreground hover:text-orange-400 transition-colors shrink-0 cursor-pointer"
+                              title="Login As"
+                            >
+                              <UserCheck size={14} />
+                            </span>
+                          )}
                         </button>
 
                         {/* Expanded edit section */}

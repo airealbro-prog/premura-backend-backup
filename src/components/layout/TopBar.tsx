@@ -12,6 +12,7 @@ interface TopBarProps {
   isConnected: boolean;
   dateRange: DateRange;
   onDateRangeChange: (range: DateRange) => void;
+  companyName?: string | null;
 }
 
 const viewLabels: Record<ViewType, string> = {
@@ -84,11 +85,16 @@ function DatePickerPopover({
   );
 }
 
-export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange }: TopBarProps) {
+export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange, companyName }: TopBarProps) {
   return (
     <header className="sticky top-0 z-40 h-14 flex items-center justify-between px-6 border-b border-border glass">
-      <h1 className="text-base font-semibold text-foreground tracking-wide">
+      <h1 className="text-base font-semibold text-foreground tracking-wide flex items-center gap-2">
         {viewLabels[currentView]}
+        {companyName && (
+          <span className="text-muted-foreground font-normal">
+            — {companyName}
+          </span>
+        )}
       </h1>
 
       <div className="flex items-center gap-3">

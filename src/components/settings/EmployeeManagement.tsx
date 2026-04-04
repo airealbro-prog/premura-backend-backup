@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { UserPermissions } from "@/lib/auth";
-import { Plus, Pencil, Trash2, X, Loader2, Check, Eye, EyeOff, RefreshCw, Mail, KeyRound, AlertTriangle } from "lucide-react";
+import { startImpersonation } from "@/lib/auth";
+import { Plus, Pencil, Trash2, X, Loader2, Check, Eye, EyeOff, RefreshCw, Mail, KeyRound, AlertTriangle, UserCheck } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -469,7 +470,7 @@ export function EmployeeManagement() {
                 {emp.permissions.name || "\u2014"}
               </div>
               <div className="text-sm text-muted-foreground truncate" title={emp.permissions.email ?? emp.user_id}>
-                {emp.permissions.email ?? `${emp.user_id.slice(0, 8)}...`}
+                {emp.permissions.email || <span className="italic text-muted-foreground/60">Email not set</span>}
               </div>
               <div>
                 <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
@@ -480,6 +481,19 @@ export function EmployeeManagement() {
                 {summarizePermissions(emp.permissions)}
               </div>
               <div className="flex items-center justify-end gap-1">
+                <button
+                  onClick={() => startImpersonation({
+                    user_id: emp.user_id,
+                    role: emp.role,
+                    company_id: null,
+                    permissions: emp.permissions as unknown as Record<string, unknown>,
+                    name: emp.permissions.name || emp.permissions.email || "Employee",
+                  })}
+                  className="p-1.5 rounded hover:bg-orange-500/20 text-muted-foreground hover:text-orange-400 transition-colors"
+                  title="Login As"
+                >
+                  <UserCheck size={14} />
+                </button>
                 <button
                   onClick={() => openEditModal(emp)}
                   className="p-1.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors"
