@@ -17,15 +17,19 @@ interface TopBarProps {
   clientOptions?: { id: string; name: string }[];
   selectedCompanyId?: string;
   onCompanyChange?: (id: string) => void;
+  viewLabelOverrides?: Partial<Record<ViewType, string>>;
 }
 
-const viewLabels: Record<ViewType, string> = {
+const viewLabels: Record<string, string> = {
   overview: "Overview",
   clients: "Performance",
   leaderboard: "Leaderboard",
   historical: "Historical Analysis",
   leads: "Leads Management",
   settings: "Settings",
+  fe_overview: "Sales Overview",
+  fe_pipeline: "Pipeline",
+  fe_leads: "Leads",
 };
 
 function DatePickerPopover({
@@ -89,14 +93,15 @@ function DatePickerPopover({
   );
 }
 
-export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange, companyName, mobileMenuButton, clientOptions, selectedCompanyId, onCompanyChange }: TopBarProps) {
+export function TopBar({ currentView, onRefresh, isConnected, dateRange, onDateRangeChange, companyName, mobileMenuButton, clientOptions, selectedCompanyId, onCompanyChange, viewLabelOverrides }: TopBarProps) {
+  const currentLabel = viewLabelOverrides?.[currentView] ?? viewLabels[currentView] ?? "Dashboard";
   return (
     <header className="sticky top-0 z-40 border-b border-border glass">
       <div className="flex items-center justify-between px-3 sm:px-6 h-14">
         <div className="flex items-center gap-2 min-w-0">
           {mobileMenuButton}
           <h1 className="text-sm sm:text-base font-semibold text-foreground tracking-wide flex items-center gap-2 min-w-0">
-            <span className="shrink-0">{viewLabels[currentView]}</span>
+            <span className="shrink-0">{currentLabel}</span>
             {companyName && (
               <span className="text-muted-foreground font-normal truncate hidden sm:inline">
                 — {companyName}

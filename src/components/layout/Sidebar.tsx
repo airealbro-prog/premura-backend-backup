@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
@@ -9,12 +9,16 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Menu,
   X,
-  ExternalLink,
+  Monitor,
+  Globe,
+  GitBranch,
+  Users,
 } from "lucide-react";
-import type { ViewType } from "@/types";
+import type { ViewType, DashboardMode } from "@/types";
 import { useAuth } from "@/lib/auth";
 import type { UserPermissions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -25,9 +29,11 @@ interface SidebarProps {
   onNavigate: (view: ViewType) => void;
   mobileOpen: boolean;
   onMobileToggle: () => void;
+  dashboardMode: DashboardMode;
+  onDashboardModeChange: (mode: DashboardMode) => void;
 }
 
-const navItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey: keyof UserPermissions }[] = [
+const backendNavItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey: keyof UserPermissions }[] = [
   { view: "overview", label: "Overview", icon: BarChart3, permKey: "can_view_overview" },
   { view: "clients", label: "Performance", icon: Building2, permKey: "can_view_performance" },
   { view: "leaderboard", label: "Leaderboard", icon: Trophy, permKey: "can_view_leaderboard" },
@@ -36,9 +42,18 @@ const navItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey
   { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
 ];
 
-export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle }: SidebarProps) {
+const frontendNavItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey: keyof UserPermissions }[] = [
+  { view: "fe_overview", label: "Overview", icon: BarChart3, permKey: "can_view_overview" },
+  { view: "fe_pipeline", label: "Pipeline", icon: GitBranch, permKey: "can_view_performance" },
+  { view: "fe_leads", label: "Leads", icon: Users, permKey: "can_view_leads" },
+  { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
+];
+
+export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, dashboardMode, onDashboardModeChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { user, userRole, isAdmin, hasPermission, signOut } = useAuth();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
 
   const isClient = userRole?.role === "client";
   const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
@@ -60,6 +75,20 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle }: 
     }
   }, [isClient, isClientAdmin, userRole?.company_id]);
 
+  // Close switcher on outside click
+  useEffect(() => {
+    if (!switcherOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setSwitcherOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [switcherOpen]);
+
+  const navItems = dashboardMode === "frontend" ? frontendNavItems : backendNavItems;
+
   const visibleItems = navItems.filter((item) => {
     if (isAdmin) return true;
     if (isClient || isClientAdmin) {
@@ -74,40 +103,83 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle }: 
     if (mobileOpen) onMobileToggle();
   };
 
+  const handleSwitchMode = (mode: DashboardMode) => {
+    onDashboardModeChange(mode);
+    setSwitcherOpen(false);
+  };
+
   const sidebarContent = (isMobile: boolean) => (
     <>
-      {/* Logo + brand */}
-      <div className="h-14 flex items-center gap-2.5 px-3 border-b border-border overflow-hidden">
-        <img src={premuraLogo} alt="Premura" className="h-9 w-9 object-contain shrink-0" />
-        {(isMobile || !collapsed) && (
-          <span className="text-white text-lg font-bold tracking-wide truncate">Premura</span>
-        )}
-        {isMobile && (
-          <button onClick={onMobileToggle} className="ml-auto p-1 text-muted-foreground hover:text-foreground">
-            <X size={20} />
-          </button>
-        )}
-      </div>
+      {/* Logo + brand + switcher */}
+      <div className="border-b border-border">
+        <div className="h-14 flex items-center gap-2.5 px-3 overflow-hidden">
+          <img src={premuraLogo} alt="Premura" className="h-9 w-9 object-contain shrink-0" />
+          {(isMobile || !collapsed) && (
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-white text-lg font-bold tracking-wide leading-tight">Premura</span>
+              {showDashboardSwitcher && (
+                <div className="relative" ref={switcherRef}>
+                  <button
+                    onClick={() => setSwitcherOpen(!switcherOpen)}
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors -mt-0.5"
+                  >
+                    <span className="capitalize">{dashboardMode}</span>
+                    <ChevronDown size={10} className={`transition-transform ${switcherOpen ? "rotate-180" : ""}`} />
+                  </button>
 
-      {/* Dashboard Switcher */}
-      {showDashboardSwitcher && (isMobile || !collapsed) && (
-        <div className="px-2 pt-2">
-          <div className="flex items-center rounded-md p-0.5 bg-muted/30 border border-border">
-            <div className="flex-1 px-2.5 py-1.5 text-xs font-semibold text-white rounded bg-primary/20 text-center">
-              Backend
+                  {/* Dropdown */}
+                  <AnimatePresence>
+                    {switcherOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute left-0 top-full mt-1 w-48 rounded-lg border border-border shadow-xl z-50 py-1"
+                        style={{ background: "#1e293b" }}
+                      >
+                        <button
+                          onClick={() => handleSwitchMode("backend")}
+                          className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                            dashboardMode === "backend"
+                              ? "text-primary bg-primary/10"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                          }`}
+                        >
+                          <Monitor size={15} />
+                          <div className="text-left">
+                            <div className="font-medium">Backend Dashboard</div>
+                            <div className="text-[10px] text-muted-foreground">Call center & appointments</div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => handleSwitchMode("frontend")}
+                          className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                            dashboardMode === "frontend"
+                              ? "text-primary bg-primary/10"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                          }`}
+                        >
+                          <Globe size={15} />
+                          <div className="text-left">
+                            <div className="font-medium">Frontend Dashboard</div>
+                            <div className="text-[10px] text-muted-foreground">Sales pipeline & leads</div>
+                          </div>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
-            <a
-              href="https://frontend.premura.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded hover:bg-muted/30 transition-colors text-center"
-            >
-              Frontend
-              <ExternalLink size={10} className="shrink-0" />
-            </a>
-          </div>
+          )}
+          {isMobile && (
+            <button onClick={onMobileToggle} className="ml-auto p-1 text-muted-foreground hover:text-foreground">
+              <X size={20} />
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 py-3 flex flex-col gap-0.5 px-2 overflow-y-auto">

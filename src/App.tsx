@@ -10,11 +10,16 @@ import { Leaderboard } from "@/components/views/Leaderboard";
 import { HistoricalAnalysis } from "@/components/views/HistoricalAnalysis";
 import { SettingsView } from "@/components/views/SettingsView";
 import { LeadsManagement } from "@/components/views/LeadsManagement";
+import { FrontendOverview } from "@/components/views/FrontendOverview";
+import { FrontendPipeline } from "@/components/views/FrontendPipeline";
+import { FrontendLeads } from "@/components/views/FrontendLeads";
 import { getDefaultDateRange } from "@/lib/dateUtils";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import type { UserPermissions } from "@/lib/auth";
-import type { ViewType, FilterState, DateRange, Client } from "@/types";
+import type { ViewType, FilterState, DateRange, DashboardMode, Client } from "@/types";
+
+const DASHBOARD_MODE_KEY = "premura-dashboard-mode";
 
 const defaultDateRange = getDefaultDateRange();
 
@@ -33,6 +38,9 @@ const viewPermMap: Record<ViewType, keyof UserPermissions> = {
   historical: "can_view_historical",
   leads: "can_view_leads",
   settings: "can_view_settings",
+  fe_overview: "can_view_overview",
+  fe_pipeline: "can_view_performance",
+  fe_leads: "can_view_leads",
 };
 
 function AccessDenied() {
@@ -46,6 +54,13 @@ function AccessDenied() {
 }
 
 function App() {
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => {
+    try {
+      const saved = localStorage.getItem(DASHBOARD_MODE_KEY);
+      if (saved === "frontend" || saved === "backend") return saved;
+    } catch { /* ignore */ }
+    return "backend";
+  });
   const [activeView, setActiveView] = useState<ViewType>("overview");
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -56,6 +71,24 @@ function App() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 
   const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
+
+  // Force backend mode for client users
+  useEffect(() => {
+    if (isClientUser && dashboardMode !== "backend") {
+      setDashboardMode("backend");
+    }
+  }, [isClientUser, dashboardMode]);
+
+  const handleDashboardModeChange = useCallback((mode: DashboardMode) => {
+    setDashboardMode(mode);
+    try { localStorage.setItem(DASHBOARD_MODE_KEY, mode); } catch { /* ignore */ }
+    // Navigate to the default view for the new mode
+    if (mode === "frontend") {
+      setActiveView("fe_overview");
+    } else {
+      setActiveView("overview");
+    }
+  }, []);
 
   useEffect(() => {
     if (isClientUser && userRole?.company_id) {
@@ -102,11 +135,12 @@ function App() {
 
   const renderView = () => {
     const permKey = viewPermMap[activeView];
-    if (!isAdmin && !hasPermission(permKey)) {
+    if (permKey && !isAdmin && !hasPermission(permKey)) {
       return <AccessDenied />;
     }
 
     switch (activeView) {
+      // Backend views
       case "overview":
         return <Overview key={refreshKey} dateRange={filters.dateRange} selectedCompanyId={selectedCompanyId} />;
       case "clients":
@@ -119,10 +153,25 @@ function App() {
         return <LeadsManagement key={refreshKey} dateRange={filters.dateRange} />;
       case "settings":
         return <SettingsView key={refreshKey} />;
+      // Frontend views
+      case "fe_overview":
+        return <FrontendOverview key={refreshKey} dateRange={filters.dateRange} />;
+      case "fe_pipeline":
+        return <FrontendPipeline key={refreshKey} dateRange={filters.dateRange} />;
+      case "fe_leads":
+        return <FrontendLeads key={refreshKey} dateRange={filters.dateRange} />;
       default:
         return <Overview key={refreshKey} dateRange={filters.dateRange} selectedCompanyId={selectedCompanyId} />;
     }
   };
+
+  // Determine TopBar labels based on mode
+  const viewLabelsForTopBar: Partial<Record<ViewType, string>> = dashboardMode === "frontend"
+    ? { fe_overview: "Sales Overview", fe_pipeline: "Pipeline", fe_leads: "Leads", settings: "Settings" }
+    : {};
+
+  // Show client filter only on backend overview
+  const showClientFilter = activeView === "overview" && dashboardMode === "backend" && !isClientUser;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -131,6 +180,8 @@ function App() {
         onNavigate={setActiveView}
         mobileOpen={mobileOpen}
         onMobileToggle={() => setMobileOpen(!mobileOpen)}
+        dashboardMode={dashboardMode}
+        onDashboardModeChange={handleDashboardModeChange}
       />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Impersonation banner */}
@@ -156,9 +207,10 @@ function App() {
           onDateRangeChange={handleDateRangeChange}
           companyName={isClientUser ? companyName : null}
           mobileMenuButton={<MobileMenuButton onClick={() => setMobileOpen(true)} />}
-          clientOptions={activeView === "overview" && !isClientUser ? overviewClientOptions : undefined}
+          clientOptions={showClientFilter ? overviewClientOptions : undefined}
           selectedCompanyId={selectedCompanyId}
-          onCompanyChange={activeView === "overview" && !isClientUser ? setSelectedCompanyId : undefined}
+          onCompanyChange={showClientFilter ? setSelectedCompanyId : undefined}
+          viewLabelOverrides={viewLabelsForTopBar}
         />
         <main className="flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">

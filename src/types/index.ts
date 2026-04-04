@@ -90,11 +90,38 @@ export type AchievementTier = "blue" | "orange" | "red" | "all";
 
 export type TimeFilter = "week" | "month" | "custom";
 
-export type ViewType = "overview" | "clients" | "leaderboard" | "historical" | "leads" | "settings";
+export type ViewType = "overview" | "clients" | "leaderboard" | "historical" | "leads" | "settings"
+  | "fe_overview" | "fe_pipeline" | "fe_leads";
+
+export type DashboardMode = "backend" | "frontend";
 
 export interface DateRange {
   start: Date | null;
   end: Date | null;
+}
+
+export interface FrontendMetric {
+  id: string;
+  "Lead Name": string | null;
+  "Date": string | null;
+  "Campaign Name": string | null;
+  "Closer": string | null;
+  "Phone Number": string | null;
+  "Email Address": string | null;
+  "Status / Stage in Pipeline": string | null;
+  "Setter": string | null;
+  "Appointment Booked": string | null;
+  "Date Appointment Booked": string | null;
+  "Appointment Show": string | null;
+  "Appointment Status": string | null;
+  "Pitch": string | null;
+  "Disposition/Outcome": string | null;
+  "Notes/Comments": string | null;
+  "Deal Value": string | null;
+  "Cash Collected": string | null;
+  "GHL Contact Link": string | null;
+  "Source Campaign": string | null;
+  "Tag(s)": string | null;
 }
 
 export interface FilterState {
