@@ -99,8 +99,8 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
     try {
       setError(null);
 
-      let clientsQuery = supabase.from("clients").select("*");
-      let appointmentsQuery = supabase.from("appointments_new").select("*");
+      let clientsQuery = supabase.from("clients").select("*").range(0, 49999);
+      let appointmentsQuery = supabase.from("appointments_new").select("*").range(0, 49999);
 
       if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);

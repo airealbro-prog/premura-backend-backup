@@ -32,7 +32,7 @@ const PALETTE = ["#8851F4", "#3b82f6", "#f59e0b", "#ef4444", "#22c55e", "#06b6d4
 
 function parseDealValue(raw: string | null): number {
   if (!raw) return 0;
-  const cleaned = raw.replace(/[$,]/g, "");
+  const cleaned = raw.replace(/[^0-9.]/g, "");
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
 }
@@ -40,14 +40,27 @@ function parseDealValue(raw: string | null): number {
 function cleanCampaignName(raw: string | null): string {
   if (!raw) return "Unknown";
   let s = raw.trim();
-  // Strip JSON-like brackets/quotes
-  if (s.startsWith("[")) {
+  // Parse JSON objects or arrays and extract sessionSource/medium
+  if (s.startsWith("{") || s.startsWith("[")) {
     try {
-      const arr = JSON.parse(s);
-      if (Array.isArray(arr) && arr.length > 0) s = String(arr[0]);
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        s = String(parsed[0]);
+      } else if (parsed && typeof parsed === "object") {
+        s = String(parsed.sessionSource || parsed.medium || "");
+      }
     } catch { /* use as-is */ }
   }
   s = s.replace(/^["']+|["']+$/g, "").trim();
+
+  // Group by common sources
+  const lower = s.toLowerCase();
+  if (lower.includes("facebook")) return "Facebook";
+  if (lower.includes("zapier")) return "Zapier";
+  if (lower.includes("csv_import") || lower.includes("csv import")) return "CSV Import";
+  if (lower.includes("calendar")) return "Calendar";
+  if (lower.includes("crm")) return "CRM";
+
   // Extract just the meaningful part (after " - " if present)
   const dashIdx = s.lastIndexOf(" - ");
   if (dashIdx > 0) s = s.substring(dashIdx + 3).trim();
@@ -94,7 +107,7 @@ export function FrontendOverview({ dateRange }: FrontendOverviewProps) {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const { data, error: err } = await supabaseFrontend.from("Frontend Metrics").select("*");
+      const { data, error: err } = await supabaseFrontend.from("Frontend Metrics").select("*").range(0, 49999);
       if (err) throw err;
       setMetrics((data as FrontendMetric[]) ?? []);
     } catch (err) {

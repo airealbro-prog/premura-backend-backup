@@ -287,7 +287,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase.from("appointments_new").select("*");
+      let query = supabase.from("appointments_new").select("*").range(0, 49999);
       // Client users only see their own company's data
       if (isClientUser && userRole?.company_id) {
         query = query.eq("company_id", userRole.company_id);

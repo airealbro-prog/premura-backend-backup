@@ -81,7 +81,7 @@ export function FrontendPipeline({ dateRange }: FrontendPipelineProps) {
 
   const fetchData = useCallback(async () => {
     try {
-      const { data, error } = await supabaseFrontend.from("Frontend Metrics").select("*");
+      const { data, error } = await supabaseFrontend.from("Frontend Metrics").select("*").range(0, 49999);
       if (error) throw error;
       setMetrics((data as FrontendMetric[]) ?? []);
     } catch (err) {
