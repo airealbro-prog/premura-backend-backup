@@ -204,9 +204,8 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
             </div>
           ) : (
             <div className="glass-card mx-2 sm:mx-4 mb-4 overflow-x-auto">
-              <div className="grid gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20 min-w-[600px]" style={{ gridTemplateColumns: "minmax(300px, 2fr) 90px 70px 70px 70px 3fr" }}>
+              <div className="grid gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20 min-w-[600px]" style={{ gridTemplateColumns: "minmax(300px, 2fr) 70px 70px 70px 3fr" }}>
                 <div className="pl-8">Clients</div>
-                <div className="hidden sm:block">Status</div>
                 <div className="hidden md:block text-center">Seats</div>
                 <div className="hidden md:block text-center">Agents</div>
                 <div className="text-center">Appts</div>
@@ -217,13 +216,11 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
                 <ExpandableRow
                   key={client.companyId}
                   header={
-                    <div className="grid gap-4 items-center py-2 pr-4" style={{ gridTemplateColumns: "minmax(300px, 2fr) 90px 70px 70px 70px 3fr" }}>
-                      <div className="flex items-center gap-3">
+                    <div className="grid gap-4 items-center py-2 pr-4" style={{ gridTemplateColumns: "minmax(300px, 2fr) 70px 70px 70px 3fr" }}>
+                      <div className="flex items-center gap-4" style={{ minWidth: 300 }}>
                         <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-primary/15 text-foreground truncate max-w-[220px]">
                           <TruncatedName name={client.companyName} maxLen={24} />
                         </span>
-                      </div>
-                      <div>
                         <Badge
                           variant={
                             client.status === "active"

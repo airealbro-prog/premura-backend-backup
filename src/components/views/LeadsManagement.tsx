@@ -266,7 +266,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     });
   }, [isAdmin, hasPermission, isClientUser]);
 
-  const STORAGE_KEY = "leads-column-visibility";
+  const STORAGE_KEY = "premura-leads-columns";
 
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => {
     try {
@@ -580,7 +580,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
                             isSticky ? "sticky z-10 border-r border-border/50" : ""
                           } ${col.key === "name" ? "font-medium" : ""} ${col.key === "notes" ? "!whitespace-normal max-w-[250px]" : ""}`}
                           style={{
-                            ...(isSticky ? { background: "#111827", left: stickyLeft } : {}),
+                            ...(isSticky ? { background: "#1e293b", left: stickyLeft } : {}),
                             ...(col.key === "name" ? { minWidth: 180, maxWidth: 180 } : {}),
                             ...(col.key === "recording_media_link" ? { minWidth: 90 } : {}),
                           }}
