@@ -311,13 +311,12 @@ export function SettingsView() {
 
       // Update password if provided
       if (editPassword && isPasswordValid(editPassword)) {
-        try {
-          await (supabase.auth.admin as { updateUserById: (id: string, opts: Record<string, unknown>) => Promise<{ error: { message: string } | null }> }).updateUserById(u.user_id, {
-            password: editPassword,
-          });
-        } catch {
-          // Admin API may not be available — notify but don't fail
-          setEditMsg({ type: "success", text: "Role/permissions saved. Password update requires admin privileges." });
+        const { error: pwError } = await supabase.rpc('update_user_password', {
+          target_user_id: u.user_id,
+          new_password: editPassword,
+        });
+        if (pwError) {
+          setEditMsg({ type: "error", text: `Password update failed: ${pwError.message}` });
           setEditSaving(false);
           const cid = modalClient?.company_id ?? (isClientAdmin ? userRole?.company_id : null);
     if (cid) fetchModalUsers(cid);

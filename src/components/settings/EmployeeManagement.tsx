@@ -238,24 +238,15 @@ export function EmployeeManagement() {
     setResetMsg(null);
 
     try {
-      // Try admin API first
-      try {
-        const adminRes = await (supabase.auth.admin as { updateUserById: (id: string, opts: Record<string, unknown>) => Promise<{ error: { message: string } | null }> }).updateUserById(
-          editingEmployee.user_id,
-          { password: resetPassword }
-        );
-        if (adminRes.error) throw new Error(adminRes.error.message);
+      const { error } = await supabase.rpc('update_user_password', {
+        target_user_id: editingEmployee.user_id,
+        new_password: resetPassword,
+      });
+      if (error) {
+        setResetMsg(`Error: ${error.message}`);
+      } else {
         setResetMsg("Password updated successfully.");
         setResetPassword("");
-      } catch {
-        // Fallback: updateUser (only works if current user is the target)
-        const { error } = await supabase.auth.updateUser({ password: resetPassword });
-        if (error) {
-          setResetMsg(`Error: ${error.message}`);
-        } else {
-          setResetMsg("Password updated successfully.");
-          setResetPassword("");
-        }
       }
     } catch (err) {
       setResetMsg(`Error: ${err instanceof Error ? err.message : "Failed to update password"}`);
