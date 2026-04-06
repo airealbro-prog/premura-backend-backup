@@ -1,9 +1,27 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { LoginPage } from "@/components/auth/LoginPage";
+import { ResetPasswordPage } from "@/components/auth/ResetPasswordPage";
 import { Loader2 } from "lucide-react";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, isRecoveryMode } = useAuth();
+  const [showRecovery, setShowRecovery] = useState(false);
+
+  // Detect recovery mode from auth context or URL hash
+  useEffect(() => {
+    if (isRecoveryMode) {
+      setShowRecovery(true);
+    }
+  }, [isRecoveryMode]);
+
+  // Also check URL hash on mount for recovery tokens
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("type=recovery")) {
+      setShowRecovery(true);
+    }
+  }, []);
 
   // Brief loading spinner — auth context guarantees this resolves via try/catch/finally
   if (loading) {
@@ -15,6 +33,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  // Show reset password page when in recovery mode
+  if (showRecovery && session) {
+    return <ResetPasswordPage />;
   }
 
   // No session → show login page directly (no redirect/router needed)

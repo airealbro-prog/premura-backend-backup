@@ -263,7 +263,10 @@ export function EmployeeManagement() {
     setResetSending(true);
     setResetMsg(null);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const redirectUrl = window.location.origin + window.location.pathname;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
       if (error) {
         setResetMsg(`Error: ${error.message}`);
       } else {

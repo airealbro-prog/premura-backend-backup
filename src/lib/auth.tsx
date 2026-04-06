@@ -76,6 +76,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isImpersonating: boolean;
+  isRecoveryMode: boolean;
   impersonateName: string | null;
   impersonateRole: string | null;
   exitImpersonation: () => void;
@@ -99,6 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonateName, setImpersonateName] = useState<string | null>(null);
   const [impersonateRole, setImpersonateRole] = useState<string | null>(null);
+
+  // Password recovery state
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   const exitImpersonation = useCallback(() => {
     clearImpersonation();
@@ -215,10 +219,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
       setSession(s);
       setUser(s?.user ?? null);
+
+      // Detect password recovery flow
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecoveryMode(true);
+        return; // Don't load role data during recovery
+      }
+
       if (s?.user) {
         fetchUserRole(s.user.id, s.user.email);
         resetInactivityTimer();
@@ -299,7 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [userRole, isImpersonating]);
 
   return (
-    <AuthContext.Provider value={{ session, user, userRole, loading, isAdmin, isImpersonating, impersonateName, impersonateRole, exitImpersonation, hasPermission, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, userRole, loading, isAdmin, isImpersonating, isRecoveryMode, impersonateName, impersonateRole, exitImpersonation, hasPermission, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
