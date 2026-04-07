@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Save,
   UserCheck,
+  Mail,
 } from "lucide-react";
 
 const statusOptions = ["active", "paused", "churned"] as const;
@@ -120,8 +121,6 @@ export function SettingsView() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editPassword, setEditPassword] = useState("");
-  const [showEditPassword, setShowEditPassword] = useState(false);
   const [editRole, setEditRole] = useState<"client" | "client_admin">("client");
   const [editPerms, setEditPerms] = useState<Record<string, boolean | string[]>>({});
   const [editSaving, setEditSaving] = useState(false);
@@ -267,8 +266,6 @@ export function SettingsView() {
     setEditingUserId(u.id);
     setEditName((u.permissions.name as string) || "");
     setEditEmail((u.permissions.email as string) || "");
-    setEditPassword("");
-    setShowEditPassword(false);
     setEditRole(u.role as "client" | "client_admin");
     setEditMsg(null);
     setDeleteConfirmId(null);
@@ -308,21 +305,6 @@ export function SettingsView() {
         .eq("id", u.id);
 
       if (roleError) throw roleError;
-
-      // Update password if provided
-      if (editPassword && isPasswordValid(editPassword)) {
-        const { error: pwError } = await supabase.rpc('update_user_password', {
-          target_user_id: u.user_id,
-          new_password: editPassword,
-        });
-        if (pwError) {
-          setEditMsg({ type: "error", text: `Password update failed: ${pwError.message}` });
-          setEditSaving(false);
-          const cid = modalClient?.company_id ?? (isClientAdmin ? userRole?.company_id : null);
-    if (cid) fetchModalUsers(cid);
-          return;
-        }
-      }
 
       setEditMsg({ type: "success", text: "User updated successfully!" });
       const cid = modalClient?.company_id ?? (isClientAdmin ? userRole?.company_id : null);
@@ -955,46 +937,37 @@ export function SettingsView() {
                             {/* Password Reset */}
                             <div>
                               <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">Reset Password</label>
-                              <div className="flex gap-2">
-                                <div className="relative flex-1">
-                                  <input
-                                    type={showEditPassword ? "text" : "password"}
-                                    value={editPassword}
-                                    onChange={(e) => setEditPassword(e.target.value)}
-                                    className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    placeholder="Leave blank to keep current"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowEditPassword(!showEditPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                    tabIndex={-1}
-                                  >
-                                    {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                  </button>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => { setEditPassword(generatePassword()); setShowEditPassword(true); }}
-                                  className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap"
-                                >
-                                  <RefreshCw size={14} />
-                                  Generate
-                                </button>
-                              </div>
-                              {editPassword && (
-                                <div className="mt-2 space-y-1">
-                                  {PASSWORD_RULES.map((rule) => {
-                                    const met = validatePassword(editPassword)[rule.key];
-                                    return (
-                                      <div key={rule.key} className="flex items-center gap-1.5">
-                                        <Check size={12} className={met ? "text-blue-400" : "text-muted-foreground/40"} />
-                                        <span className={`text-xs ${met ? "text-blue-400" : "text-muted-foreground/60"}`}>{rule.label}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                              <p className="text-xs text-muted-foreground mb-2">
+                                Send a password reset link to this user's email.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const email = editEmail || (u.permissions?.email as string);
+                                  if (!email) {
+                                    setEditMsg({ type: "error", text: "No email on file for this user." });
+                                    return;
+                                  }
+                                  setEditSaving(true);
+                                  try {
+                                    const redirectUrl = window.location.origin + window.location.pathname;
+                                    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+                                    if (error) {
+                                      setEditMsg({ type: "error", text: error.message });
+                                    } else {
+                                      setEditMsg({ type: "success", text: `Reset link sent to ${email}.` });
+                                    }
+                                  } catch {
+                                    setEditMsg({ type: "error", text: "Failed to send reset link." });
+                                  }
+                                  setEditSaving(false);
+                                }}
+                                disabled={editSaving}
+                                className="w-full py-2.5 rounded-md bg-primary hover:bg-primary/90 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                              >
+                                {editSaving ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                                Send Reset Link
+                              </button>
                             </div>
 
                             {/* Role */}
@@ -1061,7 +1034,7 @@ export function SettingsView() {
                             <div className="flex items-center gap-2 pt-1">
                               <button
                                 onClick={() => handleSaveUser(u)}
-                                disabled={editSaving || (editPassword !== "" && !isPasswordValid(editPassword))}
+                                disabled={editSaving}
                                 className="flex-1 py-2 rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                               >
                                 {editSaving ? (
