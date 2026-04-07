@@ -129,7 +129,7 @@ function PasswordField({
   );
 }
 
-export function EmployeeManagement() {
+export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -148,6 +148,8 @@ export function EmployeeManagement() {
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
 
   // Edit modal - password reset
+  const [resetPassword, setResetPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [resetSending, setResetSending] = useState(false);
   const [resetMsg, setResetMsg] = useState<string | null>(null);
 
@@ -196,6 +198,8 @@ export function EmployeeManagement() {
     setSuccessMsg(null);
     setErrorMsg(null);
     setCreatedCredentials(null);
+    setResetPassword("");
+    setShowResetPassword(false);
     setResetMsg(null);
     setShowRemoveConfirm(false);
     setRemoveWarning(null);
@@ -211,6 +215,8 @@ export function EmployeeManagement() {
     setSuccessMsg(null);
     setErrorMsg(null);
     setCreatedCredentials(null);
+    setResetPassword("");
+    setShowResetPassword(false);
     setResetMsg(null);
     setShowRemoveConfirm(false);
     setRemoveWarning(null);
@@ -226,7 +232,28 @@ export function EmployeeManagement() {
     setFormPerms((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleResetPassword = async () => {
+  const handleSetPassword = async () => {
+    if (!editingEmployee || !resetPassword) return;
+    setResetSending(true);
+    setResetMsg(null);
+    try {
+      const { error } = await supabase.rpc('admin_set_user_password', {
+        target_user_id: editingEmployee.user_id,
+        new_password: resetPassword,
+      });
+      if (error) {
+        setResetMsg(`Error: ${error.message}`);
+      } else {
+        setResetMsg("Password updated successfully.");
+        setResetPassword("");
+      }
+    } catch (err) {
+      setResetMsg(`Error: ${err instanceof Error ? err.message : "Failed to update password"}`);
+    }
+    setResetSending(false);
+  };
+
+  const handleSendResetLink = async () => {
     const email = formEmail || editingEmployee?.permissions.email;
     if (!email) {
       setResetMsg("No email on file for this employee.");
@@ -549,19 +576,60 @@ export function EmployeeManagement() {
                     </label>
                   </div>
 
-                  <p className="text-xs text-muted-foreground">
-                    Send a password reset link to this user's email. They'll be able to set a new password by clicking the link.
-                  </p>
+                  {isAdmin && (
+                    <>
+                      <div className="flex gap-2">
+                        <PasswordField
+                          value={resetPassword}
+                          onChange={setResetPassword}
+                          show={showResetPassword}
+                          onToggleShow={() => setShowResetPassword(!showResetPassword)}
+                          placeholder="New password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResetPassword(generatePassword());
+                            setShowResetPassword(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors text-xs whitespace-nowrap"
+                          title="Generate Password"
+                        >
+                          <RefreshCw size={14} />
+                          Generate
+                        </button>
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={handleResetPassword}
-                    disabled={resetSending || !formEmail}
-                    className="w-full py-2.5 rounded-md bg-primary hover:bg-primary/90 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {resetSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                    Send Reset Link
-                  </button>
+                      <PasswordValidationChecklist password={resetPassword} />
+                    </>
+                  )}
+
+                  <div className="flex gap-2">
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={handleSetPassword}
+                        disabled={resetSending || !resetPassword || !isPasswordValid(resetPassword)}
+                        className="flex-1 py-2 rounded-md bg-primary hover:bg-primary/90 text-white font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {resetSending ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                        Set Password
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSendResetLink}
+                      disabled={resetSending || !formEmail}
+                      className={`flex-1 py-2 rounded-md font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                        isAdmin
+                          ? "border border-border bg-card hover:bg-muted/30 text-foreground"
+                          : "bg-primary hover:bg-primary/90 text-white"
+                      }`}
+                    >
+                      {resetSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                      Send Reset Link
+                    </button>
+                  </div>
 
                   {resetMsg && (
                     <div className={`rounded-md px-3 py-2 text-xs ${
