@@ -164,7 +164,9 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
     setLoading(true);
     try {
       // Try with dashboard_access first; if column doesn't exist yet, fall back without it
-      let { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any[] | null = null;
+      const { data: d1, error } = await supabase
         .from("user_roles")
         .select("id, user_id, role, permissions, dashboard_access")
         .in("role", ["backend_employee", "frontend_employee"])
@@ -172,12 +174,14 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
 
       if (error) {
         console.warn("[EmployeeManagement] Query with dashboard_access failed, retrying without:", error.message);
-        const fallback = await supabase
+        const { data: d2 } = await supabase
           .from("user_roles")
           .select("id, user_id, role, permissions")
           .in("role", ["backend_employee", "frontend_employee"])
           .order("created_at", { ascending: true });
-        data = fallback.data;
+        data = d2;
+      } else {
+        data = d1;
       }
 
       if (data) {
