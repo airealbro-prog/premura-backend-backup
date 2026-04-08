@@ -23,6 +23,7 @@ export interface UserRole {
   role: "agency_admin" | "backend_employee" | "frontend_employee" | "client";
   company_id: string | null;
   permissions: UserPermissions;
+  dashboardAccess: string[];
 }
 
 const DEFAULT_PERMISSIONS: UserPermissions = {
@@ -50,6 +51,7 @@ export interface ImpersonateData {
   company_id: string | null;
   permissions: Record<string, unknown>;
   name: string;
+  dashboard_access?: string[];
 }
 
 export function startImpersonation(data: ImpersonateData) {
@@ -117,16 +119,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchUserRole = useCallback(async (userId: string, userEmail?: string) => {
-    type RoleRow = { role: UserRole["role"]; company_id: string | null; permissions: Record<string, unknown> };
+    type RoleRow = { role: UserRole["role"]; company_id: string | null; permissions: Record<string, unknown>; dashboard_access?: string[] | null };
 
     // Check for impersonation override
     const impersonate = getImpersonation();
     if (impersonate) {
       const perms = (impersonate.permissions ?? {}) as Partial<UserPermissions>;
+      const impDashAccess = impersonate.dashboard_access;
+      const dashboardAccess = impersonate.role === "agency_admin"
+        ? ["backend", "frontend"]
+        : (impDashAccess && impDashAccess.length > 0 ? impDashAccess : ["backend"]);
       setUserRole({
         role: impersonate.role as UserRole["role"],
         company_id: impersonate.company_id,
         permissions: { ...DEFAULT_PERMISSIONS, ...perms },
+        dashboardAccess,
       });
       setIsImpersonating(true);
       setImpersonateName(impersonate.name || "Unknown");
@@ -136,12 +143,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Helper to apply role data
     const applyRole = (data: RoleRow) => {
-      console.log("[Auth] User role loaded:", data.role, "company_id:", data.company_id);
+      console.log("[Auth] User role loaded:", data.role, "company_id:", data.company_id, "dashboard_access:", data.dashboard_access);
       const perms = (data.permissions ?? {}) as Partial<UserPermissions>;
+      // agency_admin always gets both dashboards; default to ['backend'] for backward compatibility
+      const dashboardAccess = data.role === "agency_admin"
+        ? ["backend", "frontend"]
+        : (data.dashboard_access && data.dashboard_access.length > 0 ? data.dashboard_access : ["backend"]);
       setUserRole({
         role: data.role,
         company_id: data.company_id,
         permissions: { ...DEFAULT_PERMISSIONS, ...perms },
+        dashboardAccess,
       });
     };
 
@@ -167,7 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const directResult = await supabase
         .from("user_roles")
-        .select("role, company_id, permissions")
+        .select("role, company_id, permissions, dashboard_access")
         .eq("user_id", userId)
         .maybeSingle();
       const directData = directResult.data as RoleRow | null;
@@ -191,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: isAdminEmail ? "agency_admin" : "backend_employee",
       company_id: null,
       permissions: { ...DEFAULT_PERMISSIONS, can_view_settings: isAdminEmail },
+      dashboardAccess: isAdminEmail ? ["backend", "frontend"] : ["backend"],
     });
   }, []);
 

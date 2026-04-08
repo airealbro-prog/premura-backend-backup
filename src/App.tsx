@@ -71,15 +71,38 @@ function App() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 
   const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
+  const dashboardAccess = userRole?.dashboardAccess ?? ["backend"];
 
-  // Force backend mode for client users
+  // Force correct dashboard mode based on access
   useEffect(() => {
     if (isClientUser && dashboardMode !== "backend") {
       setDashboardMode("backend");
+      return;
     }
-  }, [isClientUser, dashboardMode]);
+    // If user only has access to one dashboard, force that mode
+    if (dashboardAccess.length === 1 && dashboardMode !== dashboardAccess[0]) {
+      setDashboardMode(dashboardAccess[0] as DashboardMode);
+      try { localStorage.setItem(DASHBOARD_MODE_KEY, dashboardAccess[0]); } catch { /* ignore */ }
+      // Navigate to default view for forced mode
+      if (dashboardAccess[0] === "frontend") {
+        setActiveView("fe_overview");
+      } else {
+        setActiveView("overview");
+      }
+      return;
+    }
+    // If current mode is not in their access list, switch to first allowed
+    if (!dashboardAccess.includes(dashboardMode)) {
+      const fallback = dashboardAccess[0] as DashboardMode;
+      setDashboardMode(fallback);
+      try { localStorage.setItem(DASHBOARD_MODE_KEY, fallback); } catch { /* ignore */ }
+      setActiveView(fallback === "frontend" ? "fe_overview" : "overview");
+    }
+  }, [isClientUser, dashboardMode, dashboardAccess]);
 
   const handleDashboardModeChange = useCallback((mode: DashboardMode) => {
+    // Prevent switching to a dashboard the user doesn't have access to
+    if (!dashboardAccess.includes(mode)) return;
     setDashboardMode(mode);
     try { localStorage.setItem(DASHBOARD_MODE_KEY, mode); } catch { /* ignore */ }
     // Navigate to the default view for the new mode
@@ -88,7 +111,7 @@ function App() {
     } else {
       setActiveView("overview");
     }
-  }, []);
+  }, [dashboardAccess]);
 
   useEffect(() => {
     if (isClientUser && userRole?.company_id) {

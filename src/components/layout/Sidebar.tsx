@@ -59,7 +59,8 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
 
   const isClient = userRole?.role === "client";
   const isClientAdmin = (userRole as { role: string } | null)?.role === "client_admin";
-  const showDashboardSwitcher = userRole?.role === "agency_admin" || userRole?.role === "backend_employee";
+  const dashboardAccess = userRole?.dashboardAccess ?? ["backend"];
+  const showDashboardSwitcher = !isClient && !isClientAdmin && dashboardAccess.length > 1;
   const [clientAgentCount, setClientAgentCount] = useState(0);
 
   useEffect(() => {
@@ -222,34 +223,38 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
               className="fixed w-52 rounded-lg border border-border shadow-2xl z-[61] py-1"
               style={{ background: "#1e293b", top: switcherPos.top, left: switcherPos.left }}
             >
-              <button
-                onClick={() => handleSwitchMode("backend")}
-                className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
-                  dashboardMode === "backend"
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
-                }`}
-              >
-                <Monitor size={15} className="shrink-0" />
-                <div className="text-left">
-                  <div className="font-medium">Backend Dashboard</div>
-                  <div className="text-[10px] text-muted-foreground">Call center & appointments</div>
-                </div>
-              </button>
-              <button
-                onClick={() => handleSwitchMode("frontend")}
-                className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
-                  dashboardMode === "frontend"
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
-                }`}
-              >
-                <Globe size={15} className="shrink-0" />
-                <div className="text-left">
-                  <div className="font-medium">Frontend Dashboard</div>
-                  <div className="text-[10px] text-muted-foreground">Sales pipeline & leads</div>
-                </div>
-              </button>
+              {dashboardAccess.includes("backend") && (
+                <button
+                  onClick={() => handleSwitchMode("backend")}
+                  className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                    dashboardMode === "backend"
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                  }`}
+                >
+                  <Monitor size={15} className="shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">Backend Dashboard</div>
+                    <div className="text-[10px] text-muted-foreground">Call center & appointments</div>
+                  </div>
+                </button>
+              )}
+              {dashboardAccess.includes("frontend") && (
+                <button
+                  onClick={() => handleSwitchMode("frontend")}
+                  className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                    dashboardMode === "frontend"
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                  }`}
+                >
+                  <Globe size={15} className="shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">Frontend Dashboard</div>
+                    <div className="text-[10px] text-muted-foreground">Sales pipeline & leads</div>
+                  </div>
+                </button>
+              )}
             </motion.div>
           </>
         )}

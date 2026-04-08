@@ -9,6 +9,7 @@ interface Employee {
   user_id: string;
   role: string;
   permissions: UserPermissions & { email?: string };
+  dashboard_access: string[];
   email?: string;
 }
 
@@ -144,6 +145,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
   const [formPassword, setFormPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [formRole, setFormRole] = useState<"backend_employee" | "frontend_employee">("backend_employee");
+  const [formDashboardAccess, setFormDashboardAccess] = useState<string[]>(["backend"]);
   const [formPerms, setFormPerms] = useState<UserPermissions>(getDefaultPermissions());
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
 
@@ -163,7 +165,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
     try {
       const { data } = await supabase
         .from("user_roles")
-        .select("id, user_id, role, permissions")
+        .select("id, user_id, role, permissions, dashboard_access")
         .in("role", ["backend_employee", "frontend_employee"])
         .order("created_at", { ascending: true });
 
@@ -174,6 +176,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
             user_id: d.user_id,
             role: d.role,
             permissions: { ...getDefaultPermissions(), ...(d.permissions as Partial<UserPermissions & { email?: string }>) },
+            dashboard_access: (d.dashboard_access as string[] | null) ?? ["backend"],
           }))
         );
       }
@@ -194,6 +197,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
     setFormPassword("");
     setShowPassword(false);
     setFormRole("backend_employee");
+    setFormDashboardAccess(["backend"]);
     setFormPerms(getDefaultPermissions());
     setSuccessMsg(null);
     setErrorMsg(null);
@@ -211,6 +215,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
     setFormName(emp.permissions.name ?? "");
     setFormEmail(emp.permissions.email ?? "");
     setFormRole(emp.role as "backend_employee" | "frontend_employee");
+    setFormDashboardAccess(emp.dashboard_access.length > 0 ? [...emp.dashboard_access] : ["backend"]);
     setFormPerms({ ...emp.permissions });
     setSuccessMsg(null);
     setErrorMsg(null);
@@ -320,6 +325,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
           .update({
             role: formRole,
             permissions: permissionsJson,
+            dashboard_access: formDashboardAccess,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editingEmployee.id);
@@ -402,6 +408,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
           user_id: newUserId,
           role: formRole,
           permissions: permissionsJson,
+          dashboard_access: formDashboardAccess,
         });
 
         if (roleError) {
@@ -444,7 +451,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30">
           <div>Name</div>
           <div className="hidden sm:block">Email / User ID</div>
-          <div className="hidden sm:block">Role</div>
+          <div className="hidden sm:block">Dashboards</div>
           <div className="hidden sm:block">Permissions</div>
           <div className="text-right">Actions</div>
         </div>
@@ -469,10 +476,12 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
               <div className="hidden sm:block text-sm text-muted-foreground truncate" title={emp.permissions.email ?? emp.user_id}>
                 {emp.permissions.email || <span className="italic text-muted-foreground/60">Email not set</span>}
               </div>
-              <div className="hidden sm:block">
-                <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                  {emp.role === "backend_employee" ? "Backend" : "Frontend"}
-                </span>
+              <div className="hidden sm:flex gap-1 flex-wrap">
+                {emp.dashboard_access.map((d) => (
+                  <span key={d} className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary capitalize">
+                    {d}
+                  </span>
+                ))}
               </div>
               <div className="hidden sm:block text-xs text-muted-foreground">
                 {summarizePermissions(emp.permissions)}
@@ -485,6 +494,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
                     company_id: null,
                     permissions: emp.permissions as unknown as Record<string, unknown>,
                     name: emp.permissions.name || emp.permissions.email || "Employee",
+                    dashboard_access: emp.dashboard_access,
                   })}
                   className="p-1.5 rounded hover:bg-orange-500/20 text-muted-foreground hover:text-orange-400 transition-colors"
                   title="Login As"
@@ -671,19 +681,42 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
                 </div>
               )}
 
-              {/* 4. Role */}
+              {/* 4. Dashboard Access */}
               <div>
                 <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                  Role
+                  Dashboard Access
                 </label>
-                <select
-                  value={formRole}
-                  onChange={(e) => setFormRole(e.target.value as typeof formRole)}
-                  className="w-full rounded-md border border-border bg-card text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="backend_employee">Backend Employee</option>
-                  <option value="frontend_employee">Frontend Employee</option>
-                </select>
+                <div className="flex gap-3">
+                  {[
+                    { value: "backend", label: "Backend Dashboard" },
+                    { value: "frontend", label: "Frontend Dashboard" },
+                  ].map((opt) => {
+                    const checked = formDashboardAccess.includes(opt.value);
+                    return (
+                      <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setFormDashboardAccess((prev) => {
+                              if (checked) {
+                                // Don't allow unchecking if it's the last one
+                                if (prev.length <= 1) return prev;
+                                return prev.filter((v) => v !== opt.value);
+                              }
+                              return [...prev, opt.value];
+                            });
+                          }}
+                          className="rounded border-border text-primary focus:ring-primary/50"
+                        />
+                        <span className="text-sm text-foreground">{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  At least one dashboard must be selected.
+                </p>
               </div>
 
               {/* 5. Permission toggles */}
