@@ -163,11 +163,22 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      // Try with dashboard_access first; if column doesn't exist yet, fall back without it
+      let { data, error } = await supabase
         .from("user_roles")
         .select("id, user_id, role, permissions, dashboard_access")
         .in("role", ["backend_employee", "frontend_employee"])
         .order("created_at", { ascending: true });
+
+      if (error) {
+        console.warn("[EmployeeManagement] Query with dashboard_access failed, retrying without:", error.message);
+        const fallback = await supabase
+          .from("user_roles")
+          .select("id, user_id, role, permissions")
+          .in("role", ["backend_employee", "frontend_employee"])
+          .order("created_at", { ascending: true });
+        data = fallback.data;
+      }
 
       if (data) {
         setEmployees(
@@ -176,7 +187,7 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
             user_id: d.user_id,
             role: d.role,
             permissions: { ...getDefaultPermissions(), ...(d.permissions as Partial<UserPermissions & { email?: string }>) },
-            dashboard_access: (d.dashboard_access as string[] | null) ?? ["backend"],
+            dashboard_access: ((d as Record<string, unknown>).dashboard_access as string[] | null) ?? ["backend"],
           }))
         );
       }
@@ -319,8 +330,8 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
 
     try {
       if (editingEmployee) {
-        // Update user_roles
-        const { error } = await supabase
+        // Update user_roles (with dashboard_access fallback if column doesn't exist yet)
+        let { error } = await supabase
           .from("user_roles")
           .update({
             role: formRole,
@@ -329,6 +340,19 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
             updated_at: new Date().toISOString(),
           })
           .eq("id", editingEmployee.id);
+
+        if (error) {
+          // Retry without dashboard_access in case column doesn't exist yet
+          const retry = await supabase
+            .from("user_roles")
+            .update({
+              role: formRole,
+              permissions: permissionsJson,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", editingEmployee.id);
+          error = retry.error;
+        }
 
         if (error) {
           setErrorMsg(error.message);
@@ -403,13 +427,23 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
           return;
         }
 
-        // Insert role
-        const { error: roleError } = await supabase.from("user_roles").insert({
+        // Insert role (with dashboard_access fallback if column doesn't exist yet)
+        let roleError: { message: string } | null = null;
+        const { error: insertErr } = await supabase.from("user_roles").insert({
           user_id: newUserId,
           role: formRole,
           permissions: permissionsJson,
           dashboard_access: formDashboardAccess,
         });
+        if (insertErr) {
+          // Retry without dashboard_access in case column doesn't exist yet
+          const { error: retryErr } = await supabase.from("user_roles").insert({
+            user_id: newUserId,
+            role: formRole,
+            permissions: permissionsJson,
+          });
+          roleError = retryErr;
+        }
 
         if (roleError) {
           setErrorMsg(roleError.message);

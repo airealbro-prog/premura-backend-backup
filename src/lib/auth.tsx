@@ -177,11 +177,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Attempt 2: Direct table query fallback
     try {
-      const directResult = await supabase
+      let directResult = await supabase
         .from("user_roles")
         .select("role, company_id, permissions, dashboard_access")
         .eq("user_id", userId)
         .maybeSingle();
+
+      // If dashboard_access column doesn't exist yet, retry without it
+      if (directResult.error) {
+        console.warn("[Auth] Direct query with dashboard_access failed, retrying without:", directResult.error.message);
+        directResult = await supabase
+          .from("user_roles")
+          .select("role, company_id, permissions")
+          .eq("user_id", userId)
+          .maybeSingle();
+      }
+
       const directData = directResult.data as RoleRow | null;
 
       if (!directResult.error && directData) {

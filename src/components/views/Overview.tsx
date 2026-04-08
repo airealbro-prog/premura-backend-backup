@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { isValidAppointment, clientAchievement, getAchievementColor } from "@/lib/calculations";
 import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
+import { syncClientsFromAppointments } from "@/lib/clientSync";
 import { StatCard } from "@/components/shared/StatCard";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import type { Appointment, Client, DateRange } from "@/types";
@@ -76,7 +77,7 @@ function renderPieLabel(props: any) {
 }
 
 export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
-  const { userRole } = useAuth();
+  const { userRole, isAdmin } = useAuth();
   const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
   const [stats, setStats] = useState({
     totalClients: 0,
@@ -115,8 +116,22 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
       if (clientsRes.error) throw clientsRes.error;
       if (appointmentsRes.error) throw appointmentsRes.error;
 
-      const fetchedClients: Client[] = clientsRes.data ?? [];
+      let fetchedClients: Client[] = clientsRes.data ?? [];
       const allAppointments: Appointment[] = appointmentsRes.data ?? [];
+
+      // Auto-create missing clients for admin users
+      if (isAdmin) {
+        try {
+          const created = await syncClientsFromAppointments(allAppointments, fetchedClients);
+          if (created > 0) {
+            // Re-fetch clients to include newly created ones
+            const { data: refreshed } = await supabase.from("clients").select("*").range(0, 49999);
+            if (refreshed) fetchedClients = refreshed;
+          }
+        } catch (err) {
+          console.warn("[Overview] Client sync failed:", err);
+        }
+      }
 
       // Apply client filter if selected
       const allClients = selectedCompanyId
@@ -195,7 +210,7 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
     } finally {
       setLoading(false);
     }
-  }, [dateRange, userRole, selectedCompanyId]);
+  }, [dateRange, userRole, isAdmin, selectedCompanyId]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
