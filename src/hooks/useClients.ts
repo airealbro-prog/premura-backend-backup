@@ -13,6 +13,7 @@ import type { Appointment, Client, ClientMetrics, AgentMetrics, FilterState } fr
 
 export function useClients(filters: FilterState) {
   const [clients, setClients] = useState<ClientMetrics[]>([]);
+  const [totalClients, setTotalClients] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { userRole } = useAuth();
@@ -124,6 +125,8 @@ export function useClients(filters: FilterState) {
           };
         });
 
+      setTotalClients(clientMetrics.length);
+
       // Apply search filter
       const filtered = filters.searchQuery
         ? clientMetrics.filter((c) =>
@@ -176,5 +179,5 @@ export function useClients(filters: FilterState) {
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  return { clients, loading, error, refetch: fetchData };
+  return { clients, totalClients, loading, error, refetch: fetchData };
 }

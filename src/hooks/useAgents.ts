@@ -18,6 +18,7 @@ interface AgentsByClient {
 
 export function useAgents(filters: FilterState) {
   const [agentsByClient, setAgentsByClient] = useState<AgentsByClient[]>([]);
+  const [totalAgents, setTotalAgents] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { userRole } = useAuth();
@@ -55,6 +56,7 @@ export function useAgents(filters: FilterState) {
 
       const { groups } = groupAppointmentsByClient(allAppointments, allClients);
 
+      let allAgentCount = 0;
       const result: AgentsByClient[] = allClients
         .filter((c) => {
           if (filters.selectedClients.length > 0) {
@@ -81,7 +83,7 @@ export function useAgents(filters: FilterState) {
 
           const validAppointments = rangeAppointments.filter(isValidAppointment);
 
-          const agents: AgentMetrics[] = Array.from(activeSetters)
+          const allAgents: AgentMetrics[] = Array.from(activeSetters)
             .map((setterName) => {
               const agentAppts = validAppointments.filter((a) => a.setter_name?.trim() === setterName);
               const apptCount = agentAppts.length;
@@ -94,7 +96,11 @@ export function useAgents(filters: FilterState) {
                 weeklyAvg: weeklyAverage(apptCount, weeks),
                 achievement: agentAchievement(apptCount, bizDays),
               };
-            })
+            });
+
+          allAgentCount += allAgents.length;
+
+          const agents = allAgents
             .filter((a) => {
               if (filters.searchQuery) {
                 return a.setterName.toLowerCase().includes(filters.searchQuery.toLowerCase());
@@ -120,6 +126,7 @@ export function useAgents(filters: FilterState) {
         })
         .filter((group) => group.agents.length > 0);
 
+      setTotalAgents(allAgentCount);
       setAgentsByClient(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch agents");
@@ -139,5 +146,5 @@ export function useAgents(filters: FilterState) {
     return () => { supabase.removeChannel(channel); };
   }, [fetchData]);
 
-  return { agentsByClient, loading, error, refetch: fetchData };
+  return { agentsByClient, totalAgents, loading, error, refetch: fetchData };
 }

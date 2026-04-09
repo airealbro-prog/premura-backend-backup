@@ -51,8 +51,8 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
   const isClientUser = userRole?.role === "client" || (userRole as { role: string } | null)?.role === "client_admin";
 
   const [mode, setMode] = useState<"clients" | "agents">(isClientUser ? "agents" : "clients");
-  const { clients, loading: clientsLoading, error: clientsError } = useClients(filters);
-  const { agentsByClient, loading: agentsLoading, error: agentsError } = useAgents(filters);
+  const { clients, totalClients, loading: clientsLoading, error: clientsError } = useClients(filters);
+  const { agentsByClient, totalAgents, loading: agentsLoading, error: agentsError } = useAgents(filters);
   const [clientOptions, setClientOptions] = useState<{ id: string; name: string }[]>([]);
 
   // Sort state for agent table
@@ -191,6 +191,24 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
             searchPlaceholder={mode === "clients" ? "Search clients..." : "Search agents..."}
           />
         </div>
+
+        {/* Summary bar */}
+        {!loading && (
+          <div className="mx-2 sm:mx-4 mt-3 flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg">
+            <span className="text-muted-foreground text-sm">
+              {mode === "agents" ? "Total Agents:" : "Total Clients:"}
+            </span>
+            <span className="text-white font-bold text-lg tabular-nums">
+              {mode === "agents" ? sortedAgents.length : clients.length}
+            </span>
+            {mode === "agents" && (filters.searchQuery || filters.achievementTier !== "all") && sortedAgents.length !== totalAgents && (
+              <span className="text-muted-foreground text-sm">of {totalAgents}</span>
+            )}
+            {mode === "clients" && (filters.searchQuery || filters.achievementTier !== "all") && clients.length !== totalClients && (
+              <span className="text-muted-foreground text-sm">of {totalClients}</span>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
