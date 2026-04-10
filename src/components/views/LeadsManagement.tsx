@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { getEffectiveDateRange, getEarliestDate, toInputDate } from "@/lib/dateUtils";
+import { getClientAppointmentFilter } from "@/lib/clientFilter";
 import type { Appointment, DateRange } from "@/types";
 import {
   Loader2,
@@ -290,7 +291,12 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
       let query = supabase.from("appointments_new").select("*").range(0, 49999);
       // Client users only see their own company's data
       if (isClientUser && userRole?.company_id) {
-        query = query.eq("company_id", userRole.company_id);
+        const orFilter = await getClientAppointmentFilter(userRole.company_id);
+        if (orFilter) {
+          query = query.or(orFilter);
+        } else {
+          query = query.eq("company_id", userRole.company_id);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;

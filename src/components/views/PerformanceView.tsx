@@ -19,7 +19,9 @@ interface PerformanceViewProps {
 }
 
 type SortField = "setterName" | "companyName" | "appointmentsBooked" | "weeklyAvg" | "achievement";
+type ClientSortField = "companyName" | "seatsPurchased" | "activeAgents" | "totalAppointments" | "achievement";
 type SortDir = "asc" | "desc";
+type StatusFilter = "active" | "all" | "churned";
 
 interface FlatAgent {
   setterName: string;
@@ -30,7 +32,7 @@ interface FlatAgent {
   achievement: number;
 }
 
-function SortArrow({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
+function SortArrow<T extends string>({ field, sortField, sortDir }: { field: T; sortField: T; sortDir: SortDir }) {
   if (field !== sortField) {
     return (
       <span className="inline-flex flex-col ml-1 opacity-30">
@@ -58,6 +60,13 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
   // Sort state for agent table
   const [sortField, setSortField] = useState<SortField>("setterName");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  // Sort state for client table (default: achievement desc)
+  const [clientSortField, setClientSortField] = useState<ClientSortField>("achievement");
+  const [clientSortDir, setClientSortDir] = useState<SortDir>("desc");
+
+  // Status filter for client performance (hide churned by default)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
 
   const loading = mode === "clients" ? clientsLoading : agentsLoading;
   const error = mode === "clients" ? clientsError : agentsError;
@@ -123,6 +132,38 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
     });
     return sorted;
   }, [flatAgents, sortField, sortDir]);
+
+  // Filtered + sorted clients
+  const displayClients = useMemo(() => {
+    let filtered = clients;
+    if (statusFilter === "active") {
+      filtered = clients.filter((c) => c.status !== "churned");
+    } else if (statusFilter === "churned") {
+      filtered = clients.filter((c) => c.status === "churned");
+    }
+    const sorted = [...filtered];
+    sorted.sort((a, b) => {
+      let cmp = 0;
+      const fa = a[clientSortField];
+      const fb = b[clientSortField];
+      if (typeof fa === "string" && typeof fb === "string") {
+        cmp = fa.localeCompare(fb);
+      } else {
+        cmp = (fa as number) - (fb as number);
+      }
+      return clientSortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [clients, statusFilter, clientSortField, clientSortDir]);
+
+  const handleClientSort = (field: ClientSortField) => {
+    if (clientSortField === field) {
+      setClientSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setClientSortField(field);
+      setClientSortDir("desc");
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -190,6 +231,19 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
             clientOptions={isClientUser ? [] : clientOptions}
             searchPlaceholder={mode === "clients" ? "Search clients..." : "Search agents..."}
           />
+
+          {/* Client status filter */}
+          {mode === "clients" && !isClientUser && (
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="rounded-md border border-border bg-card text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="active">Active Clients</option>
+              <option value="all">All Clients</option>
+              <option value="churned">Churned Only</option>
+            </select>
+          )}
         </div>
 
         {/* Summary bar */}
@@ -199,12 +253,12 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
               {mode === "agents" ? "Total Agents:" : "Total Clients:"}
             </span>
             <span className="text-white font-bold text-lg tabular-nums">
-              {mode === "agents" ? sortedAgents.length : clients.length}
+              {mode === "agents" ? sortedAgents.length : displayClients.length}
             </span>
             {mode === "agents" && (filters.searchQuery || filters.achievementTier !== "all") && sortedAgents.length !== totalAgents && (
               <span className="text-muted-foreground text-sm">of {totalAgents}</span>
             )}
-            {mode === "clients" && (filters.searchQuery || filters.achievementTier !== "all") && clients.length !== totalClients && (
+            {mode === "clients" && (filters.searchQuery || filters.achievementTier !== "all" || statusFilter !== "all") && displayClients.length !== totalClients && (
               <span className="text-muted-foreground text-sm">of {totalClients}</span>
             )}
           </div>
@@ -216,21 +270,36 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
           </div>
         ) : mode === "clients" ? (
           /* ── Client Performance ── */
-          clients.length === 0 ? (
+          displayClients.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              No client data found. Ensure the <code>clients</code> table is populated.
+              {statusFilter === "churned" ? "No churned clients found." : "No client data found."}
             </div>
           ) : (
             <div className="glass-card mx-2 sm:mx-4 mb-4 overflow-x-auto">
               <div className="grid gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20 min-w-[600px]" style={{ gridTemplateColumns: "minmax(300px, 2fr) 70px 70px 70px 3fr" }}>
-                <div className="pl-8">Clients</div>
-                <div className="hidden md:block text-center">Seats</div>
-                <div className="hidden md:block text-center">Agents</div>
-                <div className="text-center">Appts</div>
-                <div>Achievement</div>
+                <button type="button" onClick={() => handleClientSort("companyName")} className="pl-8 flex items-center gap-0.5 text-left hover:text-foreground transition-colors cursor-pointer">
+                  Clients
+                  <SortArrow field="companyName" sortField={clientSortField} sortDir={clientSortDir} />
+                </button>
+                <button type="button" onClick={() => handleClientSort("seatsPurchased")} className="hidden md:flex items-center justify-center gap-0.5 hover:text-foreground transition-colors cursor-pointer">
+                  Seats
+                  <SortArrow field="seatsPurchased" sortField={clientSortField} sortDir={clientSortDir} />
+                </button>
+                <button type="button" onClick={() => handleClientSort("activeAgents")} className="hidden md:flex items-center justify-center gap-0.5 hover:text-foreground transition-colors cursor-pointer">
+                  Agents
+                  <SortArrow field="activeAgents" sortField={clientSortField} sortDir={clientSortDir} />
+                </button>
+                <button type="button" onClick={() => handleClientSort("totalAppointments")} className="flex items-center justify-center gap-0.5 hover:text-foreground transition-colors cursor-pointer">
+                  Appts
+                  <SortArrow field="totalAppointments" sortField={clientSortField} sortDir={clientSortDir} />
+                </button>
+                <button type="button" onClick={() => handleClientSort("achievement")} className="flex items-center gap-0.5 text-left hover:text-foreground transition-colors cursor-pointer">
+                  Achievement
+                  <SortArrow field="achievement" sortField={clientSortField} sortDir={clientSortDir} />
+                </button>
               </div>
 
-              {clients.map((client) => (
+              {displayClients.map((client) => (
                 <ExpandableRow
                   key={client.companyId}
                   header={

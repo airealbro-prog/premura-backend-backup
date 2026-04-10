@@ -5,6 +5,7 @@ import { isValidAppointment, clientAchievement, getAchievementColor } from "@/li
 import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
 import { syncClientsFromAppointments } from "@/lib/clientSync";
+import { getClientAppointmentFilter } from "@/lib/clientFilter";
 import { StatCard } from "@/components/shared/StatCard";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import type { Appointment, Client, DateRange } from "@/types";
@@ -105,7 +106,13 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
 
       if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
-        appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
+        // Match appointments by company_id OR "Company Name" to handle ID mismatches
+        const orFilter = await getClientAppointmentFilter(userRole.company_id);
+        if (orFilter) {
+          appointmentsQuery = appointmentsQuery.or(orFilter);
+        } else {
+          appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
+        }
       }
 
       const [clientsRes, appointmentsRes] = await Promise.all([
@@ -306,6 +313,49 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
 
   const totalSolar = existingSolarData.reduce((s, d) => s + d.value, 0);
   const totalShading = shadingData.reduce((s, d) => s + d.value, 0);
+
+  // Disposition Insights metrics
+  const dispositionMetrics = useMemo(() => {
+    const total = rangeAppts.length;
+    let closes = 0, notInterested = 0, followUps = 0, reschedules = 0, disqualified = 0;
+    let shows = 0, noShows = 0, noAnswer = 0;
+    let jobSizeSum = 0, jobSizeCount = 0;
+
+    for (const a of rangeAppts) {
+      const d = a.disposition_status?.trim() || "";
+      if (!d) { noShows++; continue; }
+      const dl = d.toLowerCase();
+
+      if (dl.startsWith("sat")) shows++;
+
+      if (d === "Sat, Closed") {
+        closes++;
+        const js = parseFloat(a.job_size || "");
+        if (!isNaN(js)) { jobSizeSum += js; jobSizeCount++; }
+      } else if (d === "Sat, Not Interested" || d === "Not Interested") {
+        notInterested++;
+      } else if (d === "Sat, Follow up" || d === "Follow-up") {
+        followUps++;
+      } else if (d === "Sat, Rescheduled" || d === "Rescheduled") {
+        reschedules++;
+      } else if (d === "Sat, Disqualified" || d === "Disqualified") {
+        disqualified++;
+      } else if (dl === "no answer") {
+        noAnswer++;
+        noShows++;
+      }
+    }
+
+    const closePct = shows > 0 ? (closes / shows) * 100 : 0;
+    const sitPct = total > 0 ? (shows / total) * 100 : 0;
+    const noShowPct = total > 0 ? (noShows / total) * 100 : 0;
+    const avgJobSize = jobSizeCount > 0 ? jobSizeSum / jobSizeCount : 0;
+
+    return {
+      total, closes, notInterested, followUps, reschedules, disqualified,
+      shows, noShows, noAnswer, closePct, sitPct, noShowPct, avgJobSize,
+    };
+  }, [rangeAppts]);
 
   if (loading) {
     return (
@@ -612,6 +662,58 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
                 </>
               )}
             </ChartCard>
+          </div>
+        </div>
+
+        {/* Disposition Insights */}
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+            Disposition Insights
+          </h2>
+
+          {/* Totals row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-4">
+            {[
+              { label: "Closes", value: dispositionMetrics.closes, color: "#3b82f6" },
+              { label: "Shows (Sits)", value: dispositionMetrics.shows, color: "#8851F4" },
+              { label: "No Shows", value: dispositionMetrics.noShows, color: "#ef4444" },
+              { label: "Follow-ups", value: dispositionMetrics.followUps, color: "#f59e0b" },
+              { label: "Reschedules", value: dispositionMetrics.reschedules, color: "#f59e0b" },
+              { label: "Not Interested", value: dispositionMetrics.notInterested, color: "#94a3b8" },
+              { label: "Disqualified", value: dispositionMetrics.disqualified, color: "#ef4444" },
+              { label: "Avg System Size", value: dispositionMetrics.avgJobSize > 0 ? dispositionMetrics.avgJobSize.toFixed(1) + " kW" : "—", color: "#3b82f6", isText: true },
+            ].map((m) => (
+              <div key={m.label} className="glass-card p-3 flex flex-col items-center">
+                <span className="text-2xl font-bold tabular-nums" style={{ color: m.color }}>
+                  {"isText" in m && m.isText ? m.value : m.value}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1 text-center">{m.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Percentage row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {[
+              { label: "Close %", value: dispositionMetrics.closePct, good: true },
+              { label: "Sit Rate", value: dispositionMetrics.sitPct, good: true },
+              { label: "No Show %", value: dispositionMetrics.noShowPct, bad: true },
+              { label: "Not Interested %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.notInterested / dispositionMetrics.total) * 100 : 0 },
+              { label: "Follow-up %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.followUps / dispositionMetrics.total) * 100 : 0 },
+              { label: "Reschedule %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.reschedules / dispositionMetrics.total) * 100 : 0 },
+              { label: "DQ %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.disqualified / dispositionMetrics.total) * 100 : 0, bad: true },
+            ].map((m) => (
+              <div key={m.label} className="glass-card p-3 flex flex-col items-center">
+                <span className={`text-lg font-bold tabular-nums ${
+                  "good" in m && m.good && m.value > 0 ? "text-blue-400" :
+                  "bad" in m && m.bad && m.value > 20 ? "text-red-400" :
+                  "text-foreground"
+                }`}>
+                  {m.value.toFixed(1)}%
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1 text-center">{m.label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </motion.div>

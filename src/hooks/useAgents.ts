@@ -8,6 +8,7 @@ import {
 } from "@/lib/calculations";
 import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
+import { getClientAppointmentFilter } from "@/lib/clientFilter";
 import type { Appointment, Client, AgentMetrics, FilterState } from "@/types";
 
 interface AgentsByClient {
@@ -33,7 +34,12 @@ export function useAgents(filters: FilterState) {
 
       if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
-        appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
+        const orFilter = await getClientAppointmentFilter(userRole.company_id);
+        if (orFilter) {
+          appointmentsQuery = appointmentsQuery.or(orFilter);
+        } else {
+          appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
+        }
       }
 
       const [clientsRes, appointmentsRes] = await Promise.all([

@@ -26,6 +26,8 @@ export interface Appointment {
   updated_at: string;
   dq_reason: string | null;
   system_size: string | null;
+  disposition_status: string | null;
+  job_size: string | null;
   "Company Name": string | null;
 }
 
