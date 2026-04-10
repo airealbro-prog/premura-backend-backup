@@ -25,6 +25,7 @@ import type { ViewType, DashboardMode } from "@/types";
 import { useAuth } from "@/lib/auth";
 import type { UserPermissions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { getClientAppointmentFilter } from "@/lib/clientFilter";
 import premuraLogo from "@/assets/premura-logo-transparent.png";
 
 interface SidebarProps {
@@ -86,16 +87,19 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
 
   useEffect(() => {
     if ((isClient || isClientAdmin) && userRole?.company_id) {
-      supabase
-        .from("appointments_new")
-        .select("setter_name")
-        .eq("company_id", userRole.company_id)
-        .then(({ data }) => {
-          if (data) {
-            const unique = new Set(data.map((d) => d.setter_name?.trim()).filter(Boolean));
-            setClientAgentCount(unique.size);
-          }
-        });
+      (async () => {
+        // Match appointments by company_id OR "Company Name" to handle ID mismatches.
+        let query = supabase.from("appointments_new").select("setter_name");
+        const orFilter = await getClientAppointmentFilter(userRole.company_id!);
+        query = orFilter
+          ? query.or(orFilter)
+          : query.eq("company_id", userRole.company_id!);
+        const { data } = await query;
+        if (data) {
+          const unique = new Set(data.map((d) => d.setter_name?.trim()).filter(Boolean));
+          setClientAgentCount(unique.size);
+        }
+      })();
     }
   }, [isClient, isClientAdmin, userRole?.company_id]);
 

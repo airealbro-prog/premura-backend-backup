@@ -55,10 +55,14 @@ export async function getClientAppointmentFilter(companyId: string): Promise<str
 
   const parts: string[] = [];
   for (const id of siblingIds) {
+    // IDs are slugs — safe to inline unquoted.
     parts.push(`company_id.eq.${id}`);
   }
-  // Match by the literal "Company Name" column (spaces are OK in PostgREST .or filters).
-  parts.push(`Company Name.eq.${companyName}`);
+  // PostgREST .or() requires column names with spaces/specials to be wrapped
+  // in double quotes, and values containing spaces/commas/parens to be wrapped
+  // in double quotes with `\"` used to escape any embedded double quotes.
+  const quotedValue = `"${companyName.replace(/"/g, '\\"')}"`;
+  parts.push(`"Company Name".eq.${quotedValue}`);
 
   const filter = parts.join(",");
   console.log(
