@@ -105,12 +105,14 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
       let appointmentsQuery = supabase.from("appointments_new").select("*").range(0, 49999);
 
       if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
+        console.log("[Overview] client user filter — company_id:", userRole.company_id);
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
         // Match appointments by company_id OR "Company Name" to handle ID mismatches
         const orFilter = await getClientAppointmentFilter(userRole.company_id);
         if (orFilter) {
           appointmentsQuery = appointmentsQuery.or(orFilter);
         } else {
+          console.warn("[Overview] No OR filter — falling back to company_id equality for:", userRole.company_id);
           appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
         }
       }
@@ -125,6 +127,12 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
 
       let fetchedClients: Client[] = clientsRes.data ?? [];
       const allAppointments: Appointment[] = appointmentsRes.data ?? [];
+
+      if (userRole?.role === "client" || userRole?.role === ("client_admin" as string)) {
+        console.log(
+          `[Overview] Fetched ${fetchedClients.length} clients, ${allAppointments.length} appointments for company_id ${userRole?.company_id}`
+        );
+      }
 
       // Auto-create missing clients for admin users
       if (isAdmin) {

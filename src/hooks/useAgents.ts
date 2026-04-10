@@ -41,11 +41,13 @@ export function useAgents(filters: FilterState) {
       let appointmentsQuery = supabase.from("appointments_new").select("*").range(0, 49999);
 
       if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
+        console.log("[useAgents] client user filter — company_id:", userRole.company_id);
         clientsQuery = clientsQuery.eq("company_id", userRole.company_id);
         const orFilter = await getClientAppointmentFilter(userRole.company_id);
         if (orFilter) {
           appointmentsQuery = appointmentsQuery.or(orFilter);
         } else {
+          console.warn("[useAgents] No OR filter — falling back to company_id equality for:", userRole.company_id);
           appointmentsQuery = appointmentsQuery.eq("company_id", userRole.company_id);
         }
       }

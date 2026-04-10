@@ -6,22 +6,63 @@ import { supabase } from "@/lib/supabase";
  *
  * This fixes the mismatch where user_roles.company_id may not match
  * appointments_new.company_id but does match via company_name.
+ *
+ * Strategy:
+ *   1. Look up the given company_id in `clients` to resolve its company_name.
+ *   2. Find ALL `clients` rows with the same company_name (case-insensitive) —
+ *      there may be duplicates (e.g. an auto-created `auto_*` row and a
+ *      manually-created row) that each hold a slice of the appointment data.
+ *   3. Build an OR filter covering every sibling company_id PLUS the literal
+ *      `"Company Name"` so that we catch appointments linked by any of them.
  */
 export async function getClientAppointmentFilter(companyId: string): Promise<string | null> {
-  // Look up the company_name from the clients table
-  const { data } = await supabase
+  // Resolve the primary company_name for this company_id.
+  const { data: primary } = await supabase
     .from("clients")
     .select("company_name")
     .eq("company_id", companyId)
     .maybeSingle();
 
-  const companyName = data?.company_name;
+  let companyName = primary?.company_name?.trim() ?? null;
 
-  if (companyName) {
-    // Match on either company_id OR "Company Name" (the quoted column in appointments_new)
-    return `company_id.eq.${companyId},Company Name.eq.${companyName}`;
+  // If the given company_id isn't in `clients`, try interpreting it as a name.
+  if (!companyName) {
+    const { data: byName } = await supabase
+      .from("clients")
+      .select("company_name")
+      .ilike("company_name", companyId)
+      .maybeSingle();
+    companyName = byName?.company_name?.trim() ?? null;
   }
 
-  // Fallback: just match on company_id
-  return null;
+  if (!companyName) {
+    console.warn("[ClientFilter] No company_name resolved for company_id:", companyId);
+    return null;
+  }
+
+  // Find ALL client rows sharing this company_name (case-insensitive).
+  const { data: siblings } = await supabase
+    .from("clients")
+    .select("company_id, company_name")
+    .ilike("company_name", companyName);
+
+  const siblingIds = new Set<string>([companyId]);
+  for (const s of siblings ?? []) {
+    if (s.company_id && s.company_name?.toLowerCase().trim() === companyName.toLowerCase()) {
+      siblingIds.add(s.company_id);
+    }
+  }
+
+  const parts: string[] = [];
+  for (const id of siblingIds) {
+    parts.push(`company_id.eq.${id}`);
+  }
+  // Match by the literal "Company Name" column (spaces are OK in PostgREST .or filters).
+  parts.push(`Company Name.eq.${companyName}`);
+
+  const filter = parts.join(",");
+  console.log(
+    `[ClientFilter] Resolved ${siblingIds.size} sibling company_id(s) + name "${companyName}" for user company_id "${companyId}"`
+  );
+  return filter;
 }

@@ -129,9 +129,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const dashboardAccess = impersonate.role === "agency_admin"
         ? ["backend", "frontend", "client_journey", "agent_journey"]
         : (impDashAccess && impDashAccess.length > 0 ? impDashAccess : ["backend"]);
+
+      // Resolve company_id: if the impersonated user is a client but the id in
+      // the saved payload doesn't actually resolve to a clients row, re-fetch
+      // the latest company_id from user_roles. This protects against stale ids
+      // captured at the moment impersonation started.
+      let resolvedCompanyId = impersonate.company_id;
+      if (
+        (impersonate.role === "client" || impersonate.role === "client_admin") &&
+        resolvedCompanyId
+      ) {
+        const { data: clientRow } = await supabase
+          .from("clients")
+          .select("company_id, company_name")
+          .eq("company_id", resolvedCompanyId)
+          .maybeSingle();
+        if (!clientRow) {
+          console.warn(
+            "[Auth] Impersonated company_id not found in clients — re-fetching from user_roles:",
+            resolvedCompanyId
+          );
+          const { data: urRow } = await supabase
+            .from("user_roles")
+            .select("company_id")
+            .eq("user_id", impersonate.user_id)
+            .maybeSingle();
+          if (urRow?.company_id) {
+            console.log("[Auth] Resolved impersonated company_id via user_roles:", urRow.company_id);
+            resolvedCompanyId = urRow.company_id;
+          }
+        } else {
+          console.log(
+            `[Auth] Impersonating ${impersonate.name} as ${clientRow.company_name} (${clientRow.company_id})`
+          );
+        }
+      }
+
       setUserRole({
         role: impersonate.role as UserRole["role"],
-        company_id: impersonate.company_id,
+        company_id: resolvedCompanyId,
         permissions: { ...DEFAULT_PERMISSIONS, ...perms },
         dashboardAccess,
       });

@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth, startImpersonation } from "@/lib/auth";
 import { EmployeeManagement } from "@/components/settings/EmployeeManagement";
 import { AgentStartDates } from "@/components/settings/AgentStartDates";
+import { relinkAppointmentsToClient, mergeDuplicateClients } from "@/lib/clientSync";
 import type { Client } from "@/types";
 import { motion } from "framer-motion";
 import {
@@ -167,13 +168,25 @@ export function SettingsView() {
 
   const handleUpdate = async (id: string, field: string, value: string | number) => {
     await supabase.from("clients").update({ [field]: value, updated_at: new Date().toISOString() }).eq("id", id);
+    // If company_id or company_name changed, re-sync appointment links.
+    if (field === "company_id" || field === "company_name") {
+      const { data: row } = await supabase
+        .from("clients")
+        .select("company_id, company_name")
+        .eq("id", id)
+        .maybeSingle();
+      if (row?.company_id && row?.company_name) {
+        await relinkAppointmentsToClient(row.company_id, row.company_name);
+        await mergeDuplicateClients(row.company_id, row.company_name);
+      }
+    }
     fetchClients();
   };
 
   const handleAdd = async () => {
     if (!newRow.company_id || !newRow.company_name) return;
     setSaving(true);
-    await supabase.from("clients").insert({
+    const { error } = await supabase.from("clients").insert({
       company_id: newRow.company_id,
       company_name: newRow.company_name,
       seats_purchased: newRow.seats_purchased,
@@ -184,6 +197,12 @@ export function SettingsView() {
       contact_phone: newRow.contact_phone || null,
       notes: newRow.notes || null,
     });
+    if (!error) {
+      // Link any existing appointments with the same "Company Name" to this id,
+      // and merge any pre-existing auto_* duplicate clients onto this one.
+      await relinkAppointmentsToClient(newRow.company_id, newRow.company_name);
+      await mergeDuplicateClients(newRow.company_id, newRow.company_name);
+    }
     setNewRow({
       company_id: "", company_name: "", seats_purchased: 1, status: "active",
       onboarding_date: "", launch_date: "", contact_email: "", contact_phone: "", notes: "",
@@ -331,6 +350,21 @@ export function SettingsView() {
     setFormSending(true);
     setFormMsg(null);
     setCreatedCreds(null);
+
+    // Sanity check: the company_id MUST exist in clients, otherwise the new
+    // user will log in and see zero data.
+    const { data: clientCheck } = await supabase
+      .from("clients")
+      .select("company_id, company_name")
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (!clientCheck) {
+      console.error("[Settings] Attempted to create user with invalid company_id:", companyId);
+      setFormMsg({ type: "error", text: `No client found with company_id "${companyId}". Create the client first.` });
+      setFormSending(false);
+      return;
+    }
+    console.log("[Settings] Creating client user for:", clientCheck.company_name, `(${companyId})`);
 
     const permissionsJson: Record<string, unknown> = {
       ...formPerms,
