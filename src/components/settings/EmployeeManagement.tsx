@@ -724,10 +724,12 @@ export function EmployeeManagement({ isAdmin = false }: { isAdmin?: boolean }) {
                 <label className="block text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                   Dashboard Access
                 </label>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   {[
-                    { value: "backend", label: "Backend Dashboard" },
-                    { value: "frontend", label: "Frontend Dashboard" },
+                    { value: "backend", label: "Backend" },
+                    { value: "frontend", label: "Frontend" },
+                    { value: "client_journey", label: "Client Journey" },
+                    { value: "agent_journey", label: "Agent Journey" },
                   ].map((opt) => {
                     const checked = formDashboardAccess.includes(opt.value);
                     return (
