@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const perms = (impersonate.permissions ?? {}) as Partial<UserPermissions>;
       const impDashAccess = impersonate.dashboard_access;
       const dashboardAccess = impersonate.role === "agency_admin"
-        ? ["backend", "frontend"]
+        ? ["backend", "frontend", "client_journey", "agent_journey"]
         : (impDashAccess && impDashAccess.length > 0 ? impDashAccess : ["backend"]);
       setUserRole({
         role: impersonate.role as UserRole["role"],
@@ -145,9 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const applyRole = (data: RoleRow) => {
       console.log("[Auth] User role loaded:", data.role, "company_id:", data.company_id, "dashboard_access:", data.dashboard_access);
       const perms = (data.permissions ?? {}) as Partial<UserPermissions>;
-      // agency_admin always gets both dashboards; default to ['backend'] for backward compatibility
+      // agency_admin always gets all dashboards; default to ['backend'] for backward compatibility
       const dashboardAccess = data.role === "agency_admin"
-        ? ["backend", "frontend"]
+        ? ["backend", "frontend", "client_journey", "agent_journey"]
         : (data.dashboard_access && data.dashboard_access.length > 0 ? data.dashboard_access : ["backend"]);
       setUserRole({
         role: data.role,
@@ -214,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: isAdminEmail ? "agency_admin" : "backend_employee",
       company_id: null,
       permissions: { ...DEFAULT_PERMISSIONS, can_view_settings: isAdminEmail },
-      dashboardAccess: isAdminEmail ? ["backend", "frontend"] : ["backend"],
+      dashboardAccess: isAdminEmail ? ["backend", "frontend", "client_journey", "agent_journey"] : ["backend"],
     });
   }, []);
 

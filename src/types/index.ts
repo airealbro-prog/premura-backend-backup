@@ -92,10 +92,13 @@ export type AchievementTier = "blue" | "orange" | "red" | "all";
 
 export type TimeFilter = "week" | "month" | "custom";
 
-export type ViewType = "overview" | "clients" | "leaderboard" | "historical" | "leads" | "settings"
-  | "fe_overview" | "fe_pipeline" | "fe_leads";
+export type ViewType = "overview" | "clients" | "leaderboard" | "historical" | "leads" | "dialer" | "settings"
+  | "fe_overview" | "fe_pipeline" | "fe_leads"
+  | "cj_overview" | "cj_payments" | "cj_meetings" | "cj_profiles"
+  | "aj_overview" | "aj_dialer" | "aj_training" | "aj_updates" | "aj_hr"
+  | "tickets";
 
-export type DashboardMode = "backend" | "frontend";
+export type DashboardMode = "backend" | "frontend" | "client_journey" | "agent_journey";
 
 export interface DateRange {
   start: Date | null;

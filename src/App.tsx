@@ -13,6 +13,8 @@ import { LeadsManagement } from "@/components/views/LeadsManagement";
 import { FrontendOverview } from "@/components/views/FrontendOverview";
 import { FrontendPipeline } from "@/components/views/FrontendPipeline";
 import { FrontendLeads } from "@/components/views/FrontendLeads";
+import { DialerData } from "@/components/views/DialerData";
+import { PlaceholderView } from "@/components/views/PlaceholderView";
 import { getDefaultDateRange } from "@/lib/dateUtils";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -31,16 +33,28 @@ const defaultFilters: FilterState = {
   timeFilter: "custom",
 };
 
-const viewPermMap: Record<ViewType, keyof UserPermissions> = {
+const viewPermMap: Partial<Record<ViewType, keyof UserPermissions>> = {
   overview: "can_view_overview",
   clients: "can_view_performance",
   leaderboard: "can_view_leaderboard",
   historical: "can_view_historical",
   leads: "can_view_leads",
+  dialer: "can_view_overview",
   settings: "can_view_settings",
   fe_overview: "can_view_overview",
   fe_pipeline: "can_view_performance",
   fe_leads: "can_view_leads",
+  // Client Journey + Agent Journey views use can_view_overview as base permission
+  cj_overview: "can_view_overview",
+  cj_payments: "can_view_overview",
+  cj_meetings: "can_view_overview",
+  cj_profiles: "can_view_overview",
+  aj_overview: "can_view_overview",
+  aj_dialer: "can_view_overview",
+  aj_training: "can_view_overview",
+  aj_updates: "can_view_overview",
+  aj_hr: "can_view_overview",
+  tickets: "can_view_overview",
 };
 
 function AccessDenied() {
@@ -106,11 +120,13 @@ function App() {
     setDashboardMode(mode);
     try { localStorage.setItem(DASHBOARD_MODE_KEY, mode); } catch { /* ignore */ }
     // Navigate to the default view for the new mode
-    if (mode === "frontend") {
-      setActiveView("fe_overview");
-    } else {
-      setActiveView("overview");
-    }
+    const defaultViews: Record<DashboardMode, ViewType> = {
+      backend: "overview",
+      frontend: "fe_overview",
+      client_journey: "cj_overview",
+      agent_journey: "aj_overview",
+    };
+    setActiveView(defaultViews[mode] ?? "overview");
   }, [dashboardAccess]);
 
   useEffect(() => {
@@ -174,6 +190,8 @@ function App() {
         return <HistoricalAnalysis key={refreshKey} filters={filters} onFiltersChange={setFilters} />;
       case "leads":
         return <LeadsManagement key={refreshKey} dateRange={filters.dateRange} />;
+      case "dialer":
+        return <DialerData key={refreshKey} dateRange={filters.dateRange} />;
       case "settings":
         return <SettingsView key={refreshKey} />;
       // Frontend views
@@ -183,6 +201,29 @@ function App() {
         return <FrontendPipeline key={refreshKey} dateRange={filters.dateRange} />;
       case "fe_leads":
         return <FrontendLeads key={refreshKey} dateRange={filters.dateRange} />;
+      // Client Journey views
+      case "cj_overview":
+        return <PlaceholderView key={refreshKey} title="Client Overview" description="View all clients with key business metrics, lifetime value, payment status, and churn analysis." />;
+      case "cj_payments":
+        return <PlaceholderView key={refreshKey} title="Payment Tracker" description="Track all client payments, failed payments, and upcoming payment forecasts." />;
+      case "cj_meetings":
+        return <PlaceholderView key={refreshKey} title="Meeting Logs" description="Log client meetings with Fathom links, AI summaries, and action items." />;
+      case "cj_profiles":
+        return <PlaceholderView key={refreshKey} title="Client Profiles" description="Detailed client profiles with business info, onboarding data, and performance summaries." />;
+      // Agent Journey views
+      case "aj_overview":
+        return <PlaceholderView key={refreshKey} title="Agent Overview" description="Historical view of each agent's journey — status, assignments, achievement, and lifecycle." />;
+      case "aj_dialer":
+        return <DialerData key={refreshKey} dateRange={filters.dateRange} />;
+      case "aj_training":
+        return <PlaceholderView key={refreshKey} title="Training" description="Training sessions, recording links, attendance tracking, and completion status." />;
+      case "aj_updates":
+        return <PlaceholderView key={refreshKey} title="Agent Updates" description="Log of agent-related updates: performance notes, warnings, promotions, and schedule changes." />;
+      case "aj_hr":
+        return <PlaceholderView key={refreshKey} title="HR Dashboard" description="Hiring funnel analytics, recruitment metrics, and ad campaign performance." />;
+      // Tickets
+      case "tickets":
+        return <PlaceholderView key={refreshKey} title="Ticket System" description="Submit and track support tickets with priority, category, and comment threads." />;
       default:
         return <Overview key={refreshKey} dateRange={filters.dateRange} selectedCompanyId={selectedCompanyId} />;
     }

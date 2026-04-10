@@ -17,6 +17,9 @@ import {
   Globe,
   GitBranch,
   Users,
+  Phone,
+  Briefcase,
+  UserCog,
 } from "lucide-react";
 import type { ViewType, DashboardMode } from "@/types";
 import { useAuth } from "@/lib/auth";
@@ -39,6 +42,7 @@ const backendNavItems: { view: ViewType; label: string; icon: typeof BarChart3; 
   { view: "leaderboard", label: "Leaderboard", icon: Trophy, permKey: "can_view_leaderboard" },
   { view: "historical", label: "Historical", icon: CalendarDays, permKey: "can_view_historical" },
   { view: "leads", label: "Leads", icon: ClipboardList, permKey: "can_view_leads" },
+  { view: "dialer", label: "Dialer Data", icon: Phone, permKey: "can_view_overview" },
   { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
 ];
 
@@ -46,6 +50,23 @@ const frontendNavItems: { view: ViewType; label: string; icon: typeof BarChart3;
   { view: "fe_overview", label: "Overview", icon: BarChart3, permKey: "can_view_overview" },
   { view: "fe_pipeline", label: "Pipeline", icon: GitBranch, permKey: "can_view_performance" },
   { view: "fe_leads", label: "Leads", icon: Users, permKey: "can_view_leads" },
+  { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
+];
+
+const clientJourneyNavItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey: keyof UserPermissions }[] = [
+  { view: "cj_overview", label: "Client Overview", icon: BarChart3, permKey: "can_view_overview" },
+  { view: "cj_payments", label: "Payment Tracker", icon: Briefcase, permKey: "can_view_overview" },
+  { view: "cj_meetings", label: "Meeting Logs", icon: CalendarDays, permKey: "can_view_overview" },
+  { view: "cj_profiles", label: "Client Profiles", icon: Building2, permKey: "can_view_overview" },
+  { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
+];
+
+const agentJourneyNavItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey: keyof UserPermissions }[] = [
+  { view: "aj_overview", label: "Agent Overview", icon: Users, permKey: "can_view_overview" },
+  { view: "aj_dialer", label: "Dialer KPIs", icon: Phone, permKey: "can_view_overview" },
+  { view: "aj_training", label: "Training", icon: ClipboardList, permKey: "can_view_overview" },
+  { view: "aj_updates", label: "Agent Updates", icon: UserCog, permKey: "can_view_overview" },
+  { view: "aj_hr", label: "HR Dashboard", icon: Briefcase, permKey: "can_view_overview" },
   { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
 ];
 
@@ -90,7 +111,11 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
     return () => document.removeEventListener("mousedown", handler);
   }, [switcherOpen]);
 
-  const navItems = dashboardMode === "frontend" ? frontendNavItems : backendNavItems;
+  const navItems =
+    dashboardMode === "frontend" ? frontendNavItems :
+    dashboardMode === "client_journey" ? clientJourneyNavItems :
+    dashboardMode === "agent_journey" ? agentJourneyNavItems :
+    backendNavItems;
 
   const visibleItems = navItems.filter((item) => {
     if (isAdmin) return true;
@@ -252,6 +277,38 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
                   <div className="text-left">
                     <div className="font-medium">Frontend Dashboard</div>
                     <div className="text-[10px] text-muted-foreground">Sales pipeline & leads</div>
+                  </div>
+                </button>
+              )}
+              {dashboardAccess.includes("client_journey") && (
+                <button
+                  onClick={() => handleSwitchMode("client_journey")}
+                  className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                    dashboardMode === "client_journey"
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                  }`}
+                >
+                  <Briefcase size={15} className="shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">Client Journey</div>
+                    <div className="text-[10px] text-muted-foreground">Client lifecycle & payments</div>
+                  </div>
+                </button>
+              )}
+              {dashboardAccess.includes("agent_journey") && (
+                <button
+                  onClick={() => handleSwitchMode("agent_journey")}
+                  className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                    dashboardMode === "agent_journey"
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                  }`}
+                >
+                  <UserCog size={15} className="shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">Agent Journey</div>
+                    <div className="text-[10px] text-muted-foreground">Agent portal & HR</div>
                   </div>
                 </button>
               )}
