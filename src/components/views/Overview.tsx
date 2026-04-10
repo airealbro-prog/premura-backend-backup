@@ -318,12 +318,14 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
   const dispositionMetrics = useMemo(() => {
     const total = rangeAppts.length;
     let closes = 0, notInterested = 0, followUps = 0, reschedules = 0, disqualified = 0;
-    let shows = 0, noShows = 0, noAnswer = 0;
+    let shows = 0, noShows = 0;
+    let notDispositioned = 0;
     let jobSizeSum = 0, jobSizeCount = 0;
 
     for (const a of rangeAppts) {
       const d = a.disposition_status?.trim() || "";
-      if (!d) { noShows++; continue; }
+      // Skip undispositioned — they are NOT no-shows
+      if (!d) { notDispositioned++; continue; }
       const dl = d.toLowerCase();
 
       if (dl.startsWith("sat")) shows++;
@@ -341,19 +343,20 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
       } else if (d === "Sat, Disqualified" || d === "Disqualified") {
         disqualified++;
       } else if (dl === "no answer") {
-        noAnswer++;
         noShows++;
       }
     }
 
-    const closePct = shows > 0 ? (closes / shows) * 100 : 0;
-    const sitPct = total > 0 ? (shows / total) * 100 : 0;
-    const noShowPct = total > 0 ? (noShows / total) * 100 : 0;
+    const totalDispositioned = total - notDispositioned;
+    // Percentages use only dispositioned appointments as denominator
+    const closePct = shows > 0 ? (closes / shows) * 100 : -1;
+    const sitPct = totalDispositioned > 0 ? (shows / totalDispositioned) * 100 : -1;
+    const noShowPct = totalDispositioned > 0 ? (noShows / totalDispositioned) * 100 : -1;
     const avgJobSize = jobSizeCount > 0 ? jobSizeSum / jobSizeCount : 0;
 
     return {
-      total, closes, notInterested, followUps, reschedules, disqualified,
-      shows, noShows, noAnswer, closePct, sitPct, noShowPct, avgJobSize,
+      total, totalDispositioned, closes, notInterested, followUps, reschedules, disqualified,
+      shows, noShows, notDispositioned, closePct, sitPct, noShowPct, avgJobSize,
     };
   }, [rangeAppts]);
 
@@ -692,24 +695,41 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
             ))}
           </div>
 
-          {/* Percentage row */}
+          {/* Not Dispositioned — separate muted card */}
+          {dispositionMetrics.notDispositioned > 0 && (
+            <div className="glass-card p-3 flex items-center justify-between mb-4 border border-border/50 bg-muted/10">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-bold tabular-nums text-muted-foreground">{dispositionMetrics.notDispositioned}</span>
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Not Dispositioned</span>
+                  <p className="text-[10px] text-muted-foreground/60">Pending — not counted toward any rate or percentage</p>
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground/60 tabular-nums">
+                {dispositionMetrics.totalDispositioned} of {dispositionMetrics.total} dispositioned
+              </span>
+            </div>
+          )}
+
+          {/* Percentage row — denominator is totalDispositioned */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {[
               { label: "Close %", value: dispositionMetrics.closePct, good: true },
               { label: "Sit Rate", value: dispositionMetrics.sitPct, good: true },
               { label: "No Show %", value: dispositionMetrics.noShowPct, bad: true },
-              { label: "Not Interested %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.notInterested / dispositionMetrics.total) * 100 : 0 },
-              { label: "Follow-up %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.followUps / dispositionMetrics.total) * 100 : 0 },
-              { label: "Reschedule %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.reschedules / dispositionMetrics.total) * 100 : 0 },
-              { label: "DQ %", value: dispositionMetrics.total > 0 ? (dispositionMetrics.disqualified / dispositionMetrics.total) * 100 : 0, bad: true },
+              { label: "Not Interested %", value: dispositionMetrics.totalDispositioned > 0 ? (dispositionMetrics.notInterested / dispositionMetrics.totalDispositioned) * 100 : -1 },
+              { label: "Follow-up %", value: dispositionMetrics.totalDispositioned > 0 ? (dispositionMetrics.followUps / dispositionMetrics.totalDispositioned) * 100 : -1 },
+              { label: "Reschedule %", value: dispositionMetrics.totalDispositioned > 0 ? (dispositionMetrics.reschedules / dispositionMetrics.totalDispositioned) * 100 : -1 },
+              { label: "DQ %", value: dispositionMetrics.totalDispositioned > 0 ? (dispositionMetrics.disqualified / dispositionMetrics.totalDispositioned) * 100 : -1, bad: true },
             ].map((m) => (
               <div key={m.label} className="glass-card p-3 flex flex-col items-center">
                 <span className={`text-lg font-bold tabular-nums ${
+                  m.value < 0 ? "text-muted-foreground" :
                   "good" in m && m.good && m.value > 0 ? "text-blue-400" :
                   "bad" in m && m.bad && m.value > 20 ? "text-red-400" :
                   "text-foreground"
                 }`}>
-                  {m.value.toFixed(1)}%
+                  {m.value < 0 ? "—" : `${m.value.toFixed(1)}%`}
                 </span>
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1 text-center">{m.label}</span>
               </div>

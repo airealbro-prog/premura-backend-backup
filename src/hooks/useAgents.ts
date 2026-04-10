@@ -7,6 +7,7 @@ import {
   weeklyAverage,
 } from "@/lib/calculations";
 import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
+import { startOfDay } from "date-fns";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
 import { getClientAppointmentFilter } from "@/lib/clientFilter";
 import type { Appointment, Client, AgentMetrics, FilterState } from "@/types";
@@ -15,6 +16,13 @@ interface AgentsByClient {
   companyId: string;
   companyName: string;
   agents: AgentMetrics[];
+}
+
+interface AgentStartDate {
+  agent_name: string;
+  company_name: string | null;
+  start_date: string;
+  status: string;
 }
 
 export function useAgents(filters: FilterState) {
@@ -42,6 +50,28 @@ export function useAgents(filters: FilterState) {
         }
       }
 
+      // Fetch agent start dates (may not exist yet)
+      let startDates: AgentStartDate[] = [];
+      try {
+        const { data: sdData } = await supabase
+          .from("agent_start_dates")
+          .select("agent_name, company_name, start_date, status");
+        if (sdData) startDates = sdData as AgentStartDate[];
+      } catch {
+        // Table may not exist yet
+      }
+
+      // Build lookup: "agentName_companyName" -> start_date
+      const startDateMap = new Map<string, Date>();
+      for (const sd of startDates) {
+        const key = `${sd.agent_name.trim()}_${(sd.company_name || "").trim()}`;
+        startDateMap.set(key, new Date(sd.start_date));
+        // Also index by agent name only as fallback
+        if (!startDateMap.has(sd.agent_name.trim())) {
+          startDateMap.set(sd.agent_name.trim(), new Date(sd.start_date));
+        }
+      }
+
       const [clientsRes, appointmentsRes] = await Promise.all([
         clientsQuery,
         appointmentsQuery,
@@ -57,10 +87,21 @@ export function useAgents(filters: FilterState) {
       const { start: rangeStart, end: rangeEnd } = getEffectiveDateRange(
         filters.dateRange.start, filters.dateRange.end, earliest
       );
-      const bizDays = countBusinessDays(rangeStart, rangeEnd);
       const weeks = getElapsedWeeks(rangeStart, rangeEnd);
 
       const { groups } = groupAppointmentsByClient(allAppointments, allClients);
+
+      // Build a map of first appointment date per agent for fallback
+      const firstApptMap = new Map<string, Date>();
+      for (const a of allAppointments) {
+        if (!a.setter_name || !a.created_at) continue;
+        const name = a.setter_name.trim();
+        const existing = firstApptMap.get(name);
+        const d = new Date(a.created_at);
+        if (!existing || d < existing) {
+          firstApptMap.set(name, d);
+        }
+      }
 
       let allAgentCount = 0;
       const result: AgentsByClient[] = allClients
@@ -94,13 +135,27 @@ export function useAgents(filters: FilterState) {
               const agentAppts = validAppointments.filter((a) => a.setter_name?.trim() === setterName);
               const apptCount = agentAppts.length;
 
+              // Determine agent's effective start date for achievement calc
+              const specificKey = `${setterName}_${client.company_name.trim()}`;
+              const agentStartDate = startDateMap.get(specificKey)
+                ?? startDateMap.get(setterName)
+                ?? firstApptMap.get(setterName)
+                ?? rangeStart;
+
+              // Effective start = max(agentStartDate, filterRangeStart)
+              const effectiveStart = agentStartDate > rangeStart
+                ? startOfDay(agentStartDate)
+                : rangeStart;
+              const agentBizDays = countBusinessDays(effectiveStart, rangeEnd);
+              const effectiveBizDays = Math.max(agentBizDays, 1);
+
               return {
                 setterName,
                 companyId: client.company_id,
                 companyName: client.company_name,
                 appointmentsBooked: apptCount,
                 weeklyAvg: weeklyAverage(apptCount, weeks),
-                achievement: agentAchievement(apptCount, bizDays),
+                achievement: agentAchievement(apptCount, effectiveBizDays),
               };
             });
 

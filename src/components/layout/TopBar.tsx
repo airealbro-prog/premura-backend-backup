@@ -26,10 +26,21 @@ const viewLabels: Record<string, string> = {
   leaderboard: "Leaderboard",
   historical: "Historical Analysis",
   leads: "Leads Management",
+  dialer: "Dialer Data",
   settings: "Settings",
   fe_overview: "Sales Overview",
   fe_pipeline: "Pipeline",
   fe_leads: "Leads",
+  cj_overview: "Client Overview",
+  cj_payments: "Payment Tracker",
+  cj_meetings: "Meeting Logs",
+  cj_profiles: "Client Profiles",
+  aj_overview: "Agent Overview",
+  aj_dialer: "Dialer KPIs",
+  aj_training: "Training",
+  aj_updates: "Agent Updates",
+  aj_hr: "HR Dashboard",
+  tickets: "Ticket System",
 };
 
 function DatePickerPopover({
