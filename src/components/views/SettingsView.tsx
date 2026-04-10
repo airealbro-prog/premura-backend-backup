@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth, startImpersonation } from "@/lib/auth";
 import { EmployeeManagement } from "@/components/settings/EmployeeManagement";
+import { AgentStartDates } from "@/components/settings/AgentStartDates";
 import type { Client } from "@/types";
 import { motion } from "framer-motion";
 import {
@@ -24,7 +25,7 @@ import {
 
 const statusOptions = ["active", "paused", "churned"] as const;
 
-type SettingsTab = "clients" | "employees";
+type SettingsTab = "clients" | "employees" | "agent_dates";
 
 // --- Password helpers (shared with EmployeeManagement) ---
 function generatePassword(): string {
@@ -620,6 +621,17 @@ export function SettingsView() {
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
             )}
           </button>
+          <button
+            onClick={() => setTab("agent_dates")}
+            className={`pb-3 text-sm font-semibold transition-colors relative ${
+              tab === "agent_dates" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Agent Start Dates
+            {tab === "agent_dates" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
         </div>
       )}
 
@@ -830,8 +842,10 @@ export function SettingsView() {
             </div>
           </div>
         </>
-      ) : (
+      ) : tab === "employees" ? (
         <EmployeeManagement isAdmin={isAdmin} />
+      ) : (
+        <AgentStartDates />
       )}
 
       {/* Manage Client Access Modal */}

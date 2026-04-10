@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { toInputDate } from "@/lib/dateUtils";
 import { StatCard } from "@/components/shared/StatCard";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
@@ -32,57 +33,70 @@ function fmtMin(mins: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-export function DialerData({ dateRange: _dateRange }: DialerDataProps) {
+export function DialerData({ dateRange }: DialerDataProps) {
   const [data, setData] = useState<DialerKpi[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: rows } = await supabase
+      let query = supabase
         .from("dialer_kpis")
         .select("*")
-        .eq("dial_date", selectedDate)
+        .order("dial_date", { ascending: false })
         .order("agent_name");
+
+      if (dateRange.start) {
+        query = query.gte("dial_date", toInputDate(dateRange.start));
+      }
+      if (dateRange.end) {
+        query = query.lte("dial_date", toInputDate(dateRange.end));
+      }
+
+      const { data: rows } = await query;
       setData((rows as DialerKpi[]) ?? []);
     } catch {
       // Table may not exist yet
       setData([]);
     }
     setLoading(false);
-  }, [selectedDate]);
+  }, [dateRange]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const summary = useMemo(() => {
-    const totalAgents = data.filter((d) => d.attended).length;
+    const uniqueAgents = new Set(data.filter((d) => d.attended).map((d) => d.agent_name));
     const totalCalls = data.reduce((s, d) => s + d.total_calls, 0);
     const totalAppts = data.reduce((s, d) => s + d.appointments, 0);
     const avgConv = data.length > 0
       ? data.reduce((s, d) => s + d.conversion_rate, 0) / data.length
       : 0;
-    return { totalAgents, totalCalls, totalAppts, avgConv };
+    return { totalAgents: uniqueAgents.size, totalCalls, totalAppts, avgConv };
   }, [data]);
+
+  // Group by date for multi-day display
+  const dateGroups = useMemo(() => {
+    const groups = new Map<string, DialerKpi[]>();
+    for (const row of data) {
+      const existing = groups.get(row.dial_date) ?? [];
+      existing.push(row);
+      groups.set(row.dial_date, existing);
+    }
+    return Array.from(groups.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [data]);
+
+  const dateLabel = dateRange.start && dateRange.end
+    ? `${toInputDate(dateRange.start)} to ${toInputDate(dateRange.end)}`
+    : dateRange.start
+      ? `from ${toInputDate(dateRange.start)}`
+      : dateRange.end
+        ? `through ${toInputDate(dateRange.end)}`
+        : "all time";
 
   return (
     <TooltipProvider>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
         <div className="px-4 pt-4 space-y-4">
-          {/* Date picker */}
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-muted-foreground">Date:</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-md border border-border bg-card text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </div>
-
           {/* Summary cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={<Users size={18} className="text-primary" />} label="Agents Dialing" value={summary.totalAgents} accentColor="#8851F4" />
@@ -99,45 +113,51 @@ export function DialerData({ dateRange: _dateRange }: DialerDataProps) {
           ) : data.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <Phone size={40} className="mx-auto mb-3 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No dialer data for {selectedDate}.</p>
+              <p className="text-muted-foreground">No dialer data for {dateLabel}.</p>
               <p className="text-xs text-muted-foreground/60 mt-1">Data will appear here once imported from the dialer system.</p>
             </div>
           ) : (
-            <div className="glass-card overflow-x-auto">
-              <div className="grid grid-cols-10 gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20 min-w-[900px]">
-                <div className="col-span-2">Agent Name</div>
-                <div className="text-center">Attendance</div>
-                <div className="text-center">Ready Time</div>
-                <div className="text-center">Total Calls</div>
-                <div className="text-center">Callbacks</div>
-                <div className="text-center">Appts</div>
-                <div className="text-center">Avg Talk</div>
-                <div className="text-center">Avg Wrap</div>
-                <div className="text-center">Conv %</div>
-              </div>
-              {data.map((row) => (
-                <div
-                  key={row.id}
-                  className="grid grid-cols-10 gap-2 px-4 py-2.5 items-center border-t border-border hover:bg-muted/20 transition-colors min-w-[900px]"
-                >
-                  <div className="col-span-2 text-sm font-medium text-foreground truncate">{row.agent_name}</div>
-                  <div className="flex justify-center">
-                    {row.attended ? (
-                      <Check size={16} className="text-blue-400" />
-                    ) : (
-                      <X size={16} className="text-red-400" />
-                    )}
-                  </div>
-                  <div className="text-center text-sm text-muted-foreground tabular-nums">{fmtMin(row.ready_time_minutes)}</div>
-                  <div className="text-center text-sm font-semibold text-foreground tabular-nums">{row.total_calls}</div>
-                  <div className="text-center text-sm text-muted-foreground tabular-nums">{row.callbacks}</div>
-                  <div className="text-center text-sm font-semibold text-foreground tabular-nums">{row.appointments}</div>
-                  <div className="text-center text-sm text-muted-foreground tabular-nums">{fmtMin(row.avg_talk_time_minutes)}</div>
-                  <div className="text-center text-sm text-muted-foreground tabular-nums">{fmtMin(row.avg_wrap_time_minutes)}</div>
-                  <div className="text-center text-sm font-semibold text-foreground tabular-nums">{row.conversion_rate.toFixed(1)}%</div>
+            dateGroups.map(([date, rows]) => (
+              <div key={date} className="glass-card overflow-x-auto">
+                <div className="px-4 py-2 border-b border-border bg-muted/10">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{date}</span>
+                  <span className="text-xs text-muted-foreground ml-2">({rows.length} agent{rows.length !== 1 ? "s" : ""})</span>
                 </div>
-              ))}
-            </div>
+                <div className="grid grid-cols-10 gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/20 min-w-[900px]">
+                  <div className="col-span-2">Agent Name</div>
+                  <div className="text-center">Attendance</div>
+                  <div className="text-center">Ready Time</div>
+                  <div className="text-center">Total Calls</div>
+                  <div className="text-center">Callbacks</div>
+                  <div className="text-center">Appts</div>
+                  <div className="text-center">Avg Talk</div>
+                  <div className="text-center">Avg Wrap</div>
+                  <div className="text-center">Conv %</div>
+                </div>
+                {rows.map((row) => (
+                  <div
+                    key={row.id}
+                    className="grid grid-cols-10 gap-2 px-4 py-2.5 items-center border-t border-border hover:bg-muted/20 transition-colors min-w-[900px]"
+                  >
+                    <div className="col-span-2 text-sm font-medium text-foreground truncate">{row.agent_name}</div>
+                    <div className="flex justify-center">
+                      {row.attended ? (
+                        <Check size={16} className="text-blue-400" />
+                      ) : (
+                        <X size={16} className="text-red-400" />
+                      )}
+                    </div>
+                    <div className="text-center text-sm text-muted-foreground tabular-nums">{fmtMin(row.ready_time_minutes)}</div>
+                    <div className="text-center text-sm font-semibold text-foreground tabular-nums">{row.total_calls}</div>
+                    <div className="text-center text-sm text-muted-foreground tabular-nums">{row.callbacks}</div>
+                    <div className="text-center text-sm font-semibold text-foreground tabular-nums">{row.appointments}</div>
+                    <div className="text-center text-sm text-muted-foreground tabular-nums">{fmtMin(row.avg_talk_time_minutes)}</div>
+                    <div className="text-center text-sm text-muted-foreground tabular-nums">{fmtMin(row.avg_wrap_time_minutes)}</div>
+                    <div className="text-center text-sm font-semibold text-foreground tabular-nums">{row.conversion_rate.toFixed(1)}%</div>
+                  </div>
+                ))}
+              </div>
+            ))
           )}
         </div>
       </motion.div>
