@@ -8,9 +8,17 @@ import {
   weeklyAverage,
 } from "@/lib/calculations";
 import { countBusinessDays, getElapsedWeeks, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
+import { startOfDay } from "date-fns";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
 import { getClientAppointmentFilter } from "@/lib/clientFilter";
 import type { Appointment, Client, ClientMetrics, AgentMetrics, FilterState } from "@/types";
+
+interface AgentStartDate {
+  agent_name: string;
+  company_name: string | null;
+  start_date: string;
+  status: string;
+}
 
 export function useClients(filters: FilterState) {
   const [clients, setClients] = useState<ClientMetrics[]>([]);
@@ -39,6 +47,29 @@ export function useClients(filters: FilterState) {
         }
       }
 
+      // Fetch agent start dates (may not exist yet)
+      let startDates: AgentStartDate[] = [];
+      try {
+        const { data: sdData } = await supabase
+          .from("agent_start_dates")
+          .select("agent_name, company_name, start_date, status");
+        if (sdData) startDates = sdData as AgentStartDate[];
+      } catch {
+        // Table may not exist yet
+      }
+
+      // Build lookup: "agentName_companyName" -> start_date, with an
+      // agent-name-only fallback key.
+      // Matching: setter_name (appointments_new) <-> agent_name (agent_start_dates).
+      const startDateMap = new Map<string, Date>();
+      for (const sd of startDates) {
+        const key = `${sd.agent_name.trim()}_${(sd.company_name || "").trim()}`;
+        startDateMap.set(key, new Date(sd.start_date));
+        if (!startDateMap.has(sd.agent_name.trim())) {
+          startDateMap.set(sd.agent_name.trim(), new Date(sd.start_date));
+        }
+      }
+
       const [clientsRes, appointmentsRes] = await Promise.all([
         clientsQuery,
         appointmentsQuery,
@@ -62,6 +93,16 @@ export function useClients(filters: FilterState) {
       );
       const bizDays = countBusinessDays(rangeStart, rangeEnd);
       const weeks = getElapsedWeeks(rangeStart, rangeEnd);
+
+      // First-appointment fallback per agent (used if no start_date in table)
+      const firstApptMap = new Map<string, Date>();
+      for (const a of allAppointments) {
+        if (!a.setter_name || !a.created_at) continue;
+        const name = a.setter_name.trim();
+        const existing = firstApptMap.get(name);
+        const d = new Date(a.created_at);
+        if (!existing || d < existing) firstApptMap.set(name, d);
+      }
 
       // Group appointments by client (with Company Name fallback)
       const { groups } = groupAppointmentsByClient(allAppointments, allClients);
@@ -101,13 +142,40 @@ export function useClients(filters: FilterState) {
             );
             const apptCount = agentValidAppts.length;
 
+            // Resolve this agent's start date from agent_start_dates.
+            // Matching: setter_name (from appointments_new) <-> agent_name (from agent_start_dates).
+            // Prefer the agent+company match, fall back to agent-name only, then first appointment.
+            const specificKey = `${setterName}_${client.company_name.trim()}`;
+            const agentStartDate = startDateMap.get(specificKey)
+              ?? startDateMap.get(setterName)
+              ?? firstApptMap.get(setterName);
+
+            // Achievement uses the agent's start_date (NOT the global filter rangeStart).
+            // Denominator = business days from agent start to rangeEnd.
+            // Numerator   = valid appointments for this setter from agent start to rangeEnd.
+            const achievementStart = agentStartDate
+              ? startOfDay(agentStartDate)
+              : rangeStart;
+
+            const achievementValidApptCount = companyAppointments.filter((a) => {
+              if (a.setter_name?.trim() !== setterName) return false;
+              if (!a.created_at) return false;
+              const d = new Date(a.created_at);
+              return d >= achievementStart && d <= rangeEnd;
+            }).filter(isValidAppointment).length;
+
+            const achievementBizDays = Math.max(
+              countBusinessDays(achievementStart, rangeEnd),
+              1
+            );
+
             return {
               setterName,
               companyId: client.company_id,
               companyName: client.company_name,
               appointmentsBooked: apptCount,
               weeklyAvg: weeklyAverage(apptCount, weeks),
-              achievement: agentAchievement(apptCount, bizDays),
+              achievement: agentAchievement(achievementValidApptCount, achievementBizDays),
             };
           });
 

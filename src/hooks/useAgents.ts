@@ -134,22 +134,36 @@ export function useAgents(filters: FilterState) {
 
           const allAgents: AgentMetrics[] = Array.from(activeSetters)
             .map((setterName) => {
+              // Filter-window count — shown in the UI as "Appointments Booked"
               const agentAppts = validAppointments.filter((a) => a.setter_name?.trim() === setterName);
               const apptCount = agentAppts.length;
 
-              // Determine agent's effective start date for achievement calc
+              // Resolve this agent's start date from agent_start_dates.
+              // Matching: setter_name (from appointments_new) <-> agent_name (from agent_start_dates).
+              // Prefer the agent+company match, fall back to agent-name only, then first appointment.
               const specificKey = `${setterName}_${client.company_name.trim()}`;
               const agentStartDate = startDateMap.get(specificKey)
                 ?? startDateMap.get(setterName)
-                ?? firstApptMap.get(setterName)
-                ?? rangeStart;
+                ?? firstApptMap.get(setterName);
 
-              // Effective start = max(agentStartDate, filterRangeStart)
-              const effectiveStart = agentStartDate > rangeStart
+              // Achievement uses the agent's start_date (NOT the global filter rangeStart).
+              // Denominator = business days from agent start to rangeEnd.
+              // Numerator   = valid appointments for this setter from agent start to rangeEnd.
+              const achievementStart = agentStartDate
                 ? startOfDay(agentStartDate)
                 : rangeStart;
-              const agentBizDays = countBusinessDays(effectiveStart, rangeEnd);
-              const effectiveBizDays = Math.max(agentBizDays, 1);
+
+              const achievementValidApptCount = companyAppointments.filter((a) => {
+                if (a.setter_name?.trim() !== setterName) return false;
+                if (!a.created_at) return false;
+                const d = new Date(a.created_at);
+                return d >= achievementStart && d <= rangeEnd;
+              }).filter(isValidAppointment).length;
+
+              const achievementBizDays = Math.max(
+                countBusinessDays(achievementStart, rangeEnd),
+                1
+              );
 
               return {
                 setterName,
@@ -157,7 +171,7 @@ export function useAgents(filters: FilterState) {
                 companyName: client.company_name,
                 appointmentsBooked: apptCount,
                 weeklyAvg: weeklyAverage(apptCount, weeks),
-                achievement: agentAchievement(apptCount, effectiveBizDays),
+                achievement: agentAchievement(achievementValidApptCount, achievementBizDays),
               };
             });
 
