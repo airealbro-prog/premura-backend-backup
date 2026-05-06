@@ -193,14 +193,15 @@ export function useClients(filters: FilterState) {
                   }
                 });
 
-          const totalValidAppts = validAppointments.length;
+          // Calculate total appointments from filtered agents only
+          const totalValidAppts = filteredAgents.reduce((sum, a) => sum + a.appointmentsBooked, 0);
 
           return {
             companyId: client.company_id,
             companyName: client.company_name,
             status: client.status,
             seatsPurchased: client.seats_purchased,
-            activeAgents: activeSetters.size,
+            activeAgents: filteredAgents.length,
             totalAppointments: totalValidAppts,
             achievement: clientAchievement(totalValidAppts, client.seats_purchased, bizDays),
             agents: filteredAgents,
