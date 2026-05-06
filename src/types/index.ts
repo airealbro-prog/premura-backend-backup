@@ -27,6 +27,11 @@ export interface Appointment {
   dq_reason: string | null;
   system_size: string | null;
   disposition_status: string | null;
+  disposition_notes: string | null;
+  follow_up_date: string | null;
+  reschedule_date: string | null;
+  reschedule_time: string | null;
+  product: string | null;
   job_size: string | null;
   "Company Name": string | null;
 }

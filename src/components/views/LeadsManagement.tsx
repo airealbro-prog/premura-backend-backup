@@ -43,8 +43,12 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "existing_solar", label: "Existing Solar", defaultVisible: false },
   { key: "shading", label: "Shading", defaultVisible: false },
   { key: "closer_name", label: "Closer", defaultVisible: true },
+  { key: "disposition_status", label: "Disposition", defaultVisible: true },
+  { key: "disposition_notes", label: "Disposition Notes", defaultVisible: false },
   { key: "disposition_date", label: "Disposition Date", defaultVisible: false },
   { key: "dq_reason", label: "DQ Reason", defaultVisible: false },
+  { key: "follow_up_date", label: "Follow-up Date", defaultVisible: false },
+  { key: "reschedule_date", label: "Reschedule Date", defaultVisible: false },
 ];
 
 function CopyButton({ text }: { text: string }) {
@@ -437,6 +441,19 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
             <Play size={12} />
           </button>
         ) : "\u2014";
+      }
+
+      case "disposition_status": {
+        if (!str) return <span className="text-muted-foreground text-xs">Pending</span>;
+        const dl = str.toLowerCase();
+        let badgeClass = "bg-muted/30 text-muted-foreground";
+        if (dl.includes("closed")) badgeClass = "bg-green-500/10 text-green-400";
+        else if (dl.includes("not interested")) badgeClass = "bg-red-500/10 text-red-400";
+        else if (dl.includes("follow")) badgeClass = "bg-yellow-500/10 text-yellow-400";
+        else if (dl.includes("reschedule")) badgeClass = "bg-blue-500/10 text-blue-400";
+        else if (dl.includes("disqualified")) badgeClass = "bg-red-500/10 text-red-400";
+        else if (dl.includes("no answer")) badgeClass = "bg-orange-500/10 text-orange-400";
+        return <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{str}</span>;
       }
 
       case "existing_solar":
