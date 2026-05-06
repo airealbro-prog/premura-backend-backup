@@ -197,7 +197,7 @@ export function useClients(filters: FilterState) {
           const totalValidAppts = filteredAgents.reduce((sum, a) => sum + a.appointmentsBooked, 0);
 
           // Debug logging
-          if (client.companyName === "ImageMAXmedia LLC") {
+          if (client.company_name === "ImageMAXmedia LLC") {
             console.log(`[useClients] ImageMAXmedia - filteredAgents count: ${filteredAgents.length}, total appts: ${totalValidAppts}`);
             filteredAgents.forEach(a => console.log(`  - ${a.setterName}: ${a.appointmentsBooked} appts, ${a.achievement.toFixed(1)}% achievement`));
           }
