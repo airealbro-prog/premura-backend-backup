@@ -128,18 +128,47 @@ serve(async (req: Request) => {
     console.log(`Found appointment: id=${appointment.id}, name=${appointment.name}`);
 
     // Extract disposition fields from GHL form
+    // GHL sends fields as human-readable top-level keys (e.g. "What was the disposition?")
     const dispositionStatus = first(
+      payload["What was the disposition?"],
+      payload["What's the confirmation disposition?"],
       cd["disposition"], cd["disposition_status"],
       payload.disposition, payload.disposition_status,
     );
-    const systemSize = first(cd["system_size"], payload.system_size);
-    const dqReason = first(cd["dq_reason"], payload.dq_reason);
-    const followUpDate = first(cd["follow_up_date"], payload.follow_up_date);
-    const rescheduleDate = first(cd["reschedule_date"], payload.reschedule_date);
-    const rescheduleTime = first(cd["reschedule_time"], payload.reschedule_time);
-    const notes = first(cd["notes"], cd["confirmation_notes"], payload.notes);
+    const systemSize = first(
+      payload["System Size"],
+      cd["system_size"], payload.system_size,
+    );
+    const dqReason = first(
+      payload["DQ Reason/s"],
+      cd["dq_reason"], payload.dq_reason,
+    );
+    const followUpDate = first(
+      payload["When is the follow up?"],
+      cd["follow_up_date"], payload.follow_up_date,
+    );
+    const rescheduleDate = first(
+      payload["When is it rescheduled for?"],
+      cd["reschedule_date"], payload.reschedule_date,
+    );
+    const rescheduleTime = first(
+      cd["reschedule_time"], payload.reschedule_time,
+    );
+    const notes = first(
+      payload["Extra Notes:"],
+      payload["Confirmation Notes"],
+      cd["notes"], cd["confirmation_notes"], payload.notes,
+    );
     const product = first(cd["product"], payload.product);
     const jobSize = first(cd["job_size"], payload.job_size);
+    const satDown = first(
+      payload["Did the Appointment Sit Down?"],
+      cd["sat_down"], payload.sat_down,
+    );
+    const closer = first(
+      payload["Closer"],
+      cd["closer"], payload.closer,
+    );
 
     // Build update object (only include fields that have values)
     const updateData: Record<string, unknown> = {
@@ -155,6 +184,7 @@ serve(async (req: Request) => {
     if (notes) updateData.disposition_notes = notes;
     if (product) updateData.product = product;
     if (jobSize) updateData.job_size = jobSize;
+    if (closer) updateData.closer_name = closer;
 
     console.log("Updating appointment with:", JSON.stringify(updateData));
 
