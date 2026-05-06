@@ -33,7 +33,7 @@ export interface Appointment {
   reschedule_time: string | null;
   product: string | null;
   job_size: string | null;
-  "Company Name": string | null;
+  company_name: string | null;
 }
 
 export interface Client {

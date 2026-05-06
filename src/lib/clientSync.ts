@@ -20,7 +20,7 @@ export async function relinkAppointmentsToClient(
     const { data, error } = await supabase
       .from("appointments_new")
       .update({ company_id: companyId })
-      .ilike("Company Name", trimmedName)
+      .ilike("company_name", trimmedName)
       .neq("company_id", companyId)
       .select("id");
 
@@ -125,7 +125,7 @@ export async function syncClientsFromAppointments(
     // Skip if appointment already linked to a known client
     if (appt.company_id && existingIds.has(appt.company_id)) continue;
 
-    const name = appt["Company Name"]?.trim();
+    const name = appt.company_name?.trim();
     if (!name) continue;
 
     const normalized = name.toLowerCase();

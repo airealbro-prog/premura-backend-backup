@@ -21,8 +21,8 @@ export function buildClientMatcher(clients: Client[]) {
       const match = byId.get(appt.company_id);
       if (match) return match;
     }
-    // Fallback: match "Company Name" field to client's company_name
-    const companyName = appt["Company Name"];
+    // Fallback: match company_name field to client's company_name
+    const companyName = appt.company_name;
     if (companyName) {
       const match = byName.get(companyName.toLowerCase().trim());
       if (match) return match;

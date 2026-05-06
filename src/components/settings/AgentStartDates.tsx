@@ -56,14 +56,14 @@ export function AgentStartDates() {
     try {
       const { data: appts } = await supabase
         .from("appointments_new")
-        .select("setter_name, \"Company Name\", created_at")
+        .select("setter_name, company_name, created_at")
         .range(0, 49999);
 
       if (appts) {
         const agentMap = new Map<string, KnownAgent>();
         for (const a of appts) {
           const name = (a.setter_name as string | null)?.trim();
-          const company = (a["Company Name"] as string | null)?.trim() || "Unknown";
+          const company = (a.company_name as string | null)?.trim() || "Unknown";
           if (!name) continue;
           const key = `${name}_${company}`;
           const existing = agentMap.get(key);

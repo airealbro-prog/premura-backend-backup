@@ -31,7 +31,7 @@ interface ColumnDef {
 const ALL_COLUMNS: ColumnDef[] = [
   { key: "name", label: "Lead Name", defaultVisible: true },
   { key: "recording_media_link", label: "Recording", permKey: "can_view_recordings", defaultVisible: true },
-  { key: "Company Name", label: "Company Name", defaultVisible: true, hideForClient: true },
+  { key: "company_name", label: "Company Name", defaultVisible: true, hideForClient: true },
   { key: "booked_for", label: "Booked For", defaultVisible: true },
   { key: "setter_name", label: "Setter", defaultVisible: true },
   { key: "phone_number", label: "Phone", permKey: "can_view_contacts", defaultVisible: true },
@@ -340,13 +340,13 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
 
   const filtered = useMemo(() => {
     if (!clientFilter) return filteredByRole;
-    return filteredByRole.filter((a) => a["Company Name"] === clientFilter);
+    return filteredByRole.filter((a) => a.company_name === clientFilter);
   }, [filteredByRole, clientFilter]);
 
   const companyNames = useMemo(() => {
     const names = new Set<string>();
     filteredByRole.forEach((a) => {
-      if (a["Company Name"]) names.add(a["Company Name"]);
+      if (a.company_name) names.add(a.company_name);
     });
     return Array.from(names).sort();
   }, [filteredByRole]);

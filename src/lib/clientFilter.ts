@@ -62,7 +62,7 @@ export async function getClientAppointmentFilter(companyId: string): Promise<str
   // in double quotes, and values containing spaces/commas/parens to be wrapped
   // in double quotes with `\"` used to escape any embedded double quotes.
   const quotedValue = `"${companyName.replace(/"/g, '\\"')}"`;
-  parts.push(`"Company Name".eq.${quotedValue}`);
+  parts.push(`company_name.eq.${quotedValue}`);
 
   const filter = parts.join(",");
   console.log(
