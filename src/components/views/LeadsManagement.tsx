@@ -45,7 +45,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: "closer_name", label: "Closer", defaultVisible: true },
   { key: "disposition_status", label: "Disposition", defaultVisible: true },
   { key: "disposition_notes", label: "Disposition Notes", defaultVisible: false },
-  { key: "disposition_date", label: "Disposition Date", defaultVisible: false },
+  { key: "disposition_date", label: "Disposition Date", defaultVisible: true },
   { key: "dq_reason", label: "DQ Reason", defaultVisible: false },
   { key: "follow_up_date", label: "Follow-up Date", defaultVisible: false },
   { key: "reschedule_date", label: "Reschedule Date", defaultVisible: false },
@@ -271,7 +271,7 @@ export function LeadsManagement({ dateRange }: LeadsManagementProps) {
     });
   }, [isAdmin, hasPermission, isClientUser]);
 
-  const STORAGE_KEY = "premura-leads-columns";
+  const STORAGE_KEY = "premura-leads-columns-v2";
 
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => {
     try {

@@ -356,6 +356,7 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
     }
 
     const totalDispositioned = total - notDispositioned;
+    const dispositionedPct = total > 0 ? (totalDispositioned / total) * 100 : 100;
     // Percentages use only dispositioned appointments as denominator
     const closePct = shows > 0 ? (closes / shows) * 100 : -1;
     const sitPct = totalDispositioned > 0 ? (shows / totalDispositioned) * 100 : -1;
@@ -364,7 +365,7 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
 
     return {
       total, totalDispositioned, closes, notInterested, followUps, reschedules, disqualified,
-      shows, noShows, notDispositioned, closePct, sitPct, noShowPct, avgJobSize,
+      shows, noShows, notDispositioned, closePct, sitPct, noShowPct, avgJobSize, dispositionedPct,
     };
   }, [rangeAppts]);
 
@@ -682,7 +683,38 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
             Disposition Insights
           </h2>
 
-          {/* Totals row */}
+          {/* Summary row — Total Appointments, Total Dispositioned, Not Dispositioned */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div className="glass-card p-4 flex flex-col items-center">
+              <span className="text-3xl font-bold tabular-nums text-foreground">{dispositionMetrics.total}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Total Appointments</span>
+            </div>
+            <div className="glass-card p-4 flex flex-col items-center">
+              <span className="text-3xl font-bold tabular-nums text-blue-400">{dispositionMetrics.totalDispositioned}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1">Total Dispositions</span>
+            </div>
+            <div className={`glass-card p-4 flex flex-col items-center border ${
+              dispositionMetrics.dispositionedPct < 50 ? "border-red-500/50 bg-red-500/5" : "border-border/50"
+            }`}>
+              <span className={`text-3xl font-bold tabular-nums ${
+                dispositionMetrics.dispositionedPct < 50 ? "text-red-400" : "text-muted-foreground"
+              }`}>
+                {dispositionMetrics.notDispositioned}
+                <span className={`text-lg ml-1 ${
+                  dispositionMetrics.dispositionedPct < 50 ? "text-red-400/70" : "text-muted-foreground/60"
+                }`}>
+                  ({(100 - dispositionMetrics.dispositionedPct).toFixed(0)}%)
+                </span>
+              </span>
+              <span className={`text-[10px] uppercase tracking-wider mt-1 ${
+                dispositionMetrics.dispositionedPct < 50 ? "text-red-400" : "text-muted-foreground"
+              }`}>
+                Not Dispositioned {dispositionMetrics.dispositionedPct < 50 && "⚠"}
+              </span>
+            </div>
+          </div>
+
+          {/* Breakdown row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-4">
             {[
               { label: "Closes", value: dispositionMetrics.closes, color: "#3b82f6" },
@@ -696,30 +728,17 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
             ].map((m) => (
               <div key={m.label} className="glass-card p-3 flex flex-col items-center">
                 <span className="text-2xl font-bold tabular-nums" style={{ color: m.color }}>
-                  {"isText" in m && m.isText ? m.value : m.value}
+                  {m.value}
                 </span>
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-1 text-center">{m.label}</span>
               </div>
             ))}
           </div>
 
-          {/* Not Dispositioned — separate muted card */}
-          {dispositionMetrics.notDispositioned > 0 && (
-            <div className="glass-card p-3 flex items-center justify-between mb-4 border border-border/50 bg-muted/10">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold tabular-nums text-muted-foreground">{dispositionMetrics.notDispositioned}</span>
-                <div>
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Not Dispositioned</span>
-                  <p className="text-[10px] text-muted-foreground/60">Pending — not counted toward any rate or percentage</p>
-                </div>
-              </div>
-              <span className="text-xs text-muted-foreground/60 tabular-nums">
-                {dispositionMetrics.totalDispositioned} of {dispositionMetrics.total} dispositioned
-              </span>
-            </div>
-          )}
-
           {/* Percentage row — denominator is totalDispositioned */}
+          <p className="text-[10px] text-muted-foreground/60 mb-2">
+            Rates based on {dispositionMetrics.totalDispositioned} dispositioned appointment{dispositionMetrics.totalDispositioned !== 1 ? "s" : ""}
+          </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {[
               { label: "Close %", value: dispositionMetrics.closePct, good: true },
