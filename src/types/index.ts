@@ -142,3 +142,42 @@ export interface FilterState {
   searchQuery: string;
   timeFilter: TimeFilter;
 }
+
+export interface Employee {
+  id: string;
+  user_id: string | null;
+  name: string;
+  email: string;
+  department: string;
+  role: 'superadmin' | 'employee';
+  created_at: string;
+  updated_at: string;
+}
+
+export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+
+export interface Ticket {
+  id: string;
+  title: string;
+  description: string;
+  created_by: string | null;
+  assigned_to: string | null;
+  priority: TicketPriority;
+  deadline: string | null;
+  status: TicketStatus;
+  created_at: string;
+  updated_at: string;
+  creator?: Employee;
+  assignee?: Employee;
+}
+
+export interface TicketHistory {
+  id: string;
+  ticket_id: string;
+  changed_by: string | null;
+  from_employee: string | null;
+  to_employee: string | null;
+  note: string;
+  created_at: string;
+}

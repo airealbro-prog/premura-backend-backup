@@ -20,6 +20,7 @@ import {
   Phone,
   Briefcase,
   UserCog,
+  Ticket,
 } from "lucide-react";
 import type { ViewType, DashboardMode } from "@/types";
 import { useAuth } from "@/lib/auth";
@@ -44,6 +45,7 @@ const backendNavItems: { view: ViewType; label: string; icon: typeof BarChart3; 
   { view: "historical", label: "Historical", icon: CalendarDays, permKey: "can_view_historical" },
   { view: "leads", label: "Leads", icon: ClipboardList, permKey: "can_view_leads" },
   { view: "dialer", label: "Dialer Data", icon: Phone, permKey: "can_view_overview" },
+  { view: "tickets", label: "Tickets & Reports", icon: Ticket, permKey: "can_view_overview" },
   { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
 ];
 
