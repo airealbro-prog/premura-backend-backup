@@ -83,7 +83,7 @@ export function TROverview() {
       }
 
       const { data } = await q;
-      setTickets((data as TicketRow[]) ?? []);
+      setTickets((data as unknown as TicketRow[]) ?? []);
 
       const today = new Date().toISOString().slice(0, 10);
       const { count } = await supabase

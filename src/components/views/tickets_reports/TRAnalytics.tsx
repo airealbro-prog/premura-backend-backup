@@ -60,7 +60,7 @@ export function TRAnalytics() {
       const { data: tData } = await supabase
         .from('tickets')
         .select('id, status, priority, created_at, updated_at, assigned_to, assignee:employees!tickets_assigned_to_fkey(name)');
-      setTickets((tData as TicketRow[]) ?? []);
+      setTickets((tData as unknown as TicketRow[]) ?? []);
 
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const { data: rData } = await supabase
