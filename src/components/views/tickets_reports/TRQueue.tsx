@@ -92,7 +92,7 @@ export function TRQueue() {
                     {collapsed ? <ChevronRight size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
                     <span className="font-semibold text-foreground">{emp.name}</span>
                     {emp.department && <span className="text-xs text-muted-foreground">{emp.department}</span>}
-                    <span className="text-xs px-2 py-0.5 rounded-full ml-1" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff' }}>
+                    <span className="text-xs px-2 py-0.5 rounded-full ml-1" style={{ background: 'rgba(136,81,244,0.1)', color: '#8851F4' }}>
                       {empTickets.length}
                     </span>
                     {overdueCount > 0 && (
@@ -157,7 +157,7 @@ export function TRQueue() {
   });
 
   const statusIcon = (s: TicketStatus) => {
-    if (s === 'open') return <Clock size={12} style={{ color: '#00d4ff' }} />;
+    if (s === 'open') return <Clock size={12} style={{ color: '#8851F4' }} />;
     if (s === 'in_progress') return <CheckCircle2 size={12} style={{ color: '#a78bfa' }} />;
     return <XCircle size={12} style={{ color: '#6b7280' }} />;
   };

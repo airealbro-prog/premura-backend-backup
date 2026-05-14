@@ -50,7 +50,7 @@ function priorityColor(p: TicketPriority) {
 }
 
 function statusColor(s: TicketStatus) {
-  if (s === 'open') return '#00d4ff';
+  if (s === 'open') return '#8851F4';
   if (s === 'in_progress') return '#a78bfa';
   if (s === 'resolved') return '#22c55e';
   return '#6b7280';
@@ -119,7 +119,7 @@ export function TROverview() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Open Tickets" value={open} icon={<Ticket size={18} />} color="#00d4ff" borderColor="rgba(0,212,255,0.2)" />
+        <StatCard label="Open Tickets" value={open} icon={<Ticket size={18} />} color="#8851F4" borderColor="rgba(136,81,244,0.2)" />
         <StatCard label="In Progress" value={inProgress} icon={<Clock size={18} />} color="#a78bfa" borderColor="rgba(167,139,250,0.2)" />
         <StatCard label="Resolved This Week" value={resolvedThisWeek} icon={<CheckCircle2 size={18} />} color="#22c55e" borderColor="rgba(34,197,94,0.2)" />
         <StatCard label="Critical Open" value={critical} icon={<AlertTriangle size={18} />} color="#ef4444" borderColor="rgba(239,68,68,0.2)" />

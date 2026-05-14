@@ -82,7 +82,7 @@ export function TRTickets() {
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-          style={{ background: 'linear-gradient(135deg, #7b2ff7, #00d4ff)' }}
+          style={{ background: 'linear-gradient(135deg, #7b2ff7, #8851F4)' }}
         >
           <Plus size={16} /> New Ticket
         </button>
@@ -97,7 +97,7 @@ export function TRTickets() {
             placeholder="Search tickets…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none bg-white/5 border border-white/10 text-foreground focus:border-cyan-400/40"
+            className="w-full pl-8 pr-3 py-2 rounded-lg text-sm outline-none bg-white/5 border border-white/10 text-foreground focus:border-purple-500/40"
           />
         </div>
         <div className="flex items-center gap-1">
@@ -108,9 +108,9 @@ export function TRTickets() {
               onClick={() => setStatusFilter(s)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
               style={{
-                background: statusFilter === s ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${statusFilter === s ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                color: statusFilter === s ? '#00d4ff' : 'rgba(255,255,255,0.5)',
+                background: statusFilter === s ? 'rgba(136,81,244,0.15)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${statusFilter === s ? 'rgba(136,81,244,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                color: statusFilter === s ? '#8851F4' : 'rgba(255,255,255,0.5)',
               }}
             >
               {STATUS_LABELS[s]}
@@ -142,7 +142,7 @@ export function TRTickets() {
               <button
                 onClick={() => setSelectedEmployeeId('all')}
                 className="w-full flex items-center justify-between px-3 py-2 text-sm transition-colors"
-                style={{ background: selectedEmployeeId === 'all' ? 'rgba(0,212,255,0.1)' : 'transparent', color: selectedEmployeeId === 'all' ? '#00d4ff' : 'rgba(255,255,255,0.7)' }}
+                style={{ background: selectedEmployeeId === 'all' ? 'rgba(136,81,244,0.1)' : 'transparent', color: selectedEmployeeId === 'all' ? '#8851F4' : 'rgba(255,255,255,0.7)' }}
               >
                 <span className="font-medium">All</span>
                 <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>{visibleTickets.length}</span>
@@ -155,11 +155,11 @@ export function TRTickets() {
                     key={emp.id}
                     onClick={() => setSelectedEmployeeId(emp.id)}
                     className="w-full flex items-center justify-between px-3 py-2 text-sm transition-colors"
-                    style={{ background: active ? 'rgba(0,212,255,0.1)' : 'transparent', color: active ? '#00d4ff' : 'rgba(255,255,255,0.7)' }}
+                    style={{ background: active ? 'rgba(136,81,244,0.1)' : 'transparent', color: active ? '#8851F4' : 'rgba(255,255,255,0.7)' }}
                   >
                     <span className="truncate text-left">{emp.name}</span>
                     {count > 0 && (
-                      <span className="text-xs px-1.5 py-0.5 rounded-full shrink-0 ml-1" style={{ background: active ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.1)', color: active ? '#00d4ff' : 'rgba(255,255,255,0.5)' }}>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full shrink-0 ml-1" style={{ background: active ? 'rgba(136,81,244,0.2)' : 'rgba(255,255,255,0.1)', color: active ? '#8851F4' : 'rgba(255,255,255,0.5)' }}>
                         {count}
                       </span>
                     )}
@@ -179,7 +179,7 @@ export function TRTickets() {
               <TicketIcon size={32} className="opacity-30" />
               <p className="text-sm">No tickets found</p>
               {!search && statusFilter === 'all' && (
-                <button onClick={() => setShowCreate(true)} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)' }}>
+                <button onClick={() => setShowCreate(true)} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: 'rgba(136,81,244,0.1)', color: '#8851F4', border: '1px solid rgba(136,81,244,0.2)' }}>
                   Create first ticket
                 </button>
               )}

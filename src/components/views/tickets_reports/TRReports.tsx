@@ -18,7 +18,7 @@ function FieldValue({ value }: { value: unknown }) {
     return (
       <div className="flex flex-wrap gap-1">
         {value.map((v, i) => (
-          <span key={i} className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'rgba(0,212,255,0.12)', color: '#00d4ff' }}>
+          <span key={i} className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'rgba(136,81,244,0.12)', color: '#8851F4' }}>
             {String(v)}
           </span>
         ))}
@@ -43,7 +43,7 @@ function FormDataCard({ data }: { data: Record<string, unknown> }) {
     <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
       {entries.map(([key, value]) => (
         <div key={key} className="rounded-lg p-3 flex flex-col gap-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'rgba(0,212,255,0.7)' }}>{toLabel(key)}</span>
+          <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'rgba(136,81,244,0.7)' }}>{toLabel(key)}</span>
           <FieldValue value={value} />
         </div>
       ))}
@@ -69,8 +69,8 @@ function ReportRowItem({ report }: { report: ReportRow }) {
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors"
       >
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(0,212,255,0.1)' }}>
-          <FileText size={14} style={{ color: '#00d4ff' }} />
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(136,81,244,0.1)' }}>
+          <FileText size={14} style={{ color: '#8851F4' }} />
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-foreground truncate block">{report.employee_name}</span>
@@ -148,7 +148,7 @@ export function TRReports() {
             placeholder="Search employee or form…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 rounded-lg text-sm text-foreground outline-none bg-white/5 border border-white/10 focus:border-cyan-400/40"
+            className="w-full pl-8 pr-3 py-2 rounded-lg text-sm text-foreground outline-none bg-white/5 border border-white/10 focus:border-purple-500/40"
           />
         </div>
         <div className="flex items-center gap-2">

@@ -142,7 +142,7 @@ export function TRAnalytics() {
   ];
 
   const statusConfig: { key: TicketStatus; label: string; color: string }[] = [
-    { key: 'open', label: 'Open', color: '#00d4ff' },
+    { key: 'open', label: 'Open', color: '#8851F4' },
     { key: 'in_progress', label: 'In Progress', color: '#a78bfa' },
     { key: 'resolved', label: 'Resolved', color: '#22c55e' },
     { key: 'closed', label: 'Closed', color: '#6b7280' },
@@ -177,7 +177,7 @@ export function TRAnalytics() {
           value={resolutionTimes ?? '—'}
           sub={resolutionTimes ? 'from open to resolved/closed' : 'No resolved tickets yet'}
           icon={<Clock size={16} />}
-          color="#00d4ff"
+          color="#8851F4"
         />
       </div>
 
@@ -245,7 +245,7 @@ export function TRAnalytics() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-foreground">{employee_name}</span>
                   </div>
-                  <Bar value={count} max={maxReportCount} color="#00d4ff" />
+                  <Bar value={count} max={maxReportCount} color="#8851F4" />
                 </div>
               ))}
             </div>

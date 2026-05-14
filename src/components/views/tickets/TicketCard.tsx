@@ -19,8 +19,8 @@ const PRIORITY_CONFIG: Record<TicketPriority, { label: string; color: string; bg
   critical: { label: 'Critical', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
 };
 
-const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  open:        { label: 'Open',        color: '#00d4ff', bg: 'rgba(0,212,255,0.12)',    icon: <AlertCircle size={11} /> },
+const STATUS_CONFIG: Record<TicketStatus, { label: string; color: string; bg: string; glow?: string; icon: React.ReactNode }> = {
+  open:        { label: 'Open',        color: '#8851F4', bg: 'rgba(136,81,244,0.12)', glow: '0 0 8px rgba(136,81,244,0.5)', icon: <AlertCircle size={11} /> },
   in_progress: { label: 'In Progress', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', icon: <Clock size={11} /> },
   resolved:    { label: 'Resolved',    color: '#22c55e', bg: 'rgba(34,197,94,0.12)',    icon: <CheckCircle size={11} /> },
   closed:      { label: 'Closed',      color: '#6b7280', bg: 'rgba(107,114,128,0.12)', icon: <XCircle size={11} /> },
@@ -104,7 +104,7 @@ export default function TicketCard({ ticket, employees, isAdmin, currentEmployee
             <button
               onClick={() => { setShowStatusMenu(!showStatusMenu); setShowPriorityMenu(false); }}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-opacity hover:opacity-80"
-              style={{ background: status.bg, color: status.color }}
+              style={{ background: status.bg, color: status.color, boxShadow: status.glow }}
             >
               {status.icon} {status.label} <ChevronDown size={10} />
             </button>
