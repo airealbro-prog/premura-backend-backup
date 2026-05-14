@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ShieldX, X } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileMenuButton } from "@/components/layout/Sidebar";
+import { TicketDashboard } from "@/components/views/tickets/TicketDashboard";
 import { TopBar } from "@/components/layout/TopBar";
 import { Overview } from "@/components/views/Overview";
 import { PerformanceView } from "@/components/views/PerformanceView";
@@ -223,7 +224,7 @@ function App() {
         return <PlaceholderView key={refreshKey} title="HR Dashboard" description="Hiring funnel analytics, recruitment metrics, and ad campaign performance." />;
       // Tickets
       case "tickets":
-        return <PlaceholderView key={refreshKey} title="Ticket System" description="Submit and track support tickets with priority, category, and comment threads." />;
+        return <TicketDashboard key={refreshKey} />;
       default:
         return <Overview key={refreshKey} dateRange={filters.dateRange} selectedCompanyId={selectedCompanyId} />;
     }
