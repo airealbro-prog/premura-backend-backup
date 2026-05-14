@@ -21,6 +21,10 @@ import {
   Briefcase,
   UserCog,
   Ticket,
+  FileText,
+  TrendingUp,
+  ListTodo,
+  LayoutDashboard,
 } from "lucide-react";
 import type { ViewType, DashboardMode } from "@/types";
 import { useAuth } from "@/lib/auth";
@@ -45,7 +49,6 @@ const backendNavItems: { view: ViewType; label: string; icon: typeof BarChart3; 
   { view: "historical", label: "Historical", icon: CalendarDays, permKey: "can_view_historical" },
   { view: "leads", label: "Leads", icon: ClipboardList, permKey: "can_view_leads" },
   { view: "dialer", label: "Dialer Data", icon: Phone, permKey: "can_view_overview" },
-  { view: "tickets", label: "Tickets & Reports", icon: Ticket, permKey: "can_view_overview" },
   { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
 ];
 
@@ -71,6 +74,14 @@ const agentJourneyNavItems: { view: ViewType; label: string; icon: typeof BarCha
   { view: "aj_updates", label: "Agent Updates", icon: UserCog, permKey: "can_view_overview" },
   { view: "aj_hr", label: "HR Dashboard", icon: Briefcase, permKey: "can_view_overview" },
   { view: "settings", label: "Settings", icon: Settings, permKey: "can_view_settings" },
+];
+
+const ticketsReportsNavItems: { view: ViewType; label: string; icon: typeof BarChart3; permKey: keyof UserPermissions }[] = [
+  { view: "tr_overview", label: "Overview", icon: LayoutDashboard, permKey: "can_view_overview" },
+  { view: "tr_tickets", label: "Tickets", icon: Ticket, permKey: "can_view_overview" },
+  { view: "tr_queue", label: "My Queue", icon: ListTodo, permKey: "can_view_overview" },
+  { view: "tr_reports", label: "Reports", icon: FileText, permKey: "can_view_overview" },
+  { view: "tr_analytics", label: "Analytics", icon: TrendingUp, permKey: "can_view_overview" },
 ];
 
 export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, dashboardMode, onDashboardModeChange }: SidebarProps) {
@@ -121,6 +132,7 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
     dashboardMode === "frontend" ? frontendNavItems :
     dashboardMode === "client_journey" ? clientJourneyNavItems :
     dashboardMode === "agent_journey" ? agentJourneyNavItems :
+    dashboardMode === "tickets_reports" ? ticketsReportsNavItems :
     backendNavItems;
 
   const visibleItems = navItems.filter((item) => {
@@ -315,6 +327,22 @@ export function Sidebar({ activeView, onNavigate, mobileOpen, onMobileToggle, da
                   <div className="text-left">
                     <div className="font-medium">Agent Journey</div>
                     <div className="text-[10px] text-muted-foreground">Agent portal & HR</div>
+                  </div>
+                </button>
+              )}
+              {dashboardAccess.includes("tickets_reports") && (
+                <button
+                  onClick={() => handleSwitchMode("tickets_reports")}
+                  className={`flex items-center gap-2.5 w-full px-3 py-2.5 text-sm transition-colors ${
+                    dashboardMode === "tickets_reports"
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                  }`}
+                >
+                  <Ticket size={15} className="shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">Tickets & Reports</div>
+                    <div className="text-[10px] text-muted-foreground">Support tickets & EOD forms</div>
                   </div>
                 </button>
               )}

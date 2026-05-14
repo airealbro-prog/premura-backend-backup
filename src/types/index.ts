@@ -101,9 +101,10 @@ export type ViewType = "overview" | "clients" | "leaderboard" | "historical" | "
   | "fe_overview" | "fe_pipeline" | "fe_leads"
   | "cj_overview" | "cj_payments" | "cj_meetings" | "cj_profiles"
   | "aj_overview" | "aj_dialer" | "aj_training" | "aj_updates" | "aj_hr"
-  | "tickets";
+  | "tickets"
+  | "tr_overview" | "tr_tickets" | "tr_queue" | "tr_reports" | "tr_analytics";
 
-export type DashboardMode = "backend" | "frontend" | "client_journey" | "agent_journey";
+export type DashboardMode = "backend" | "frontend" | "client_journey" | "agent_journey" | "tickets_reports";
 
 export interface DateRange {
   start: Date | null;

@@ -4,6 +4,11 @@ import { ShieldX, X } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileMenuButton } from "@/components/layout/Sidebar";
 import { TicketDashboard } from "@/components/views/tickets/TicketDashboard";
+import { TROverview } from "@/components/views/tickets_reports/TROverview";
+import { TRTickets } from "@/components/views/tickets_reports/TRTickets";
+import { TRQueue } from "@/components/views/tickets_reports/TRQueue";
+import { TRReports } from "@/components/views/tickets_reports/TRReports";
+import { TRAnalytics } from "@/components/views/tickets_reports/TRAnalytics";
 import { TopBar } from "@/components/layout/TopBar";
 import { Overview } from "@/components/views/Overview";
 import { PerformanceView } from "@/components/views/PerformanceView";
@@ -56,6 +61,11 @@ const viewPermMap: Partial<Record<ViewType, keyof UserPermissions>> = {
   aj_updates: "can_view_overview",
   aj_hr: "can_view_overview",
   tickets: "can_view_overview",
+  tr_overview: "can_view_overview",
+  tr_tickets: "can_view_overview",
+  tr_queue: "can_view_overview",
+  tr_reports: "can_view_overview",
+  tr_analytics: "can_view_overview",
 };
 
 function AccessDenied() {
@@ -72,7 +82,7 @@ function App() {
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => {
     try {
       const saved = localStorage.getItem(DASHBOARD_MODE_KEY);
-      if (saved === "frontend" || saved === "backend") return saved;
+      if (saved === "frontend" || saved === "backend" || saved === "client_journey" || saved === "agent_journey" || saved === "tickets_reports") return saved as DashboardMode;
     } catch { /* ignore */ }
     return "backend";
   });
@@ -126,6 +136,7 @@ function App() {
       frontend: "fe_overview",
       client_journey: "cj_overview",
       agent_journey: "aj_overview",
+      tickets_reports: "tr_overview",
     };
     setActiveView(defaultViews[mode] ?? "overview");
   }, [dashboardAccess]);
@@ -222,9 +233,20 @@ function App() {
         return <PlaceholderView key={refreshKey} title="Agent Updates" description="Log of agent-related updates: performance notes, warnings, promotions, and schedule changes." />;
       case "aj_hr":
         return <PlaceholderView key={refreshKey} title="HR Dashboard" description="Hiring funnel analytics, recruitment metrics, and ad campaign performance." />;
-      // Tickets
+      // Tickets (legacy backend view)
       case "tickets":
         return <TicketDashboard key={refreshKey} />;
+      // Tickets & Reports mode views
+      case "tr_overview":
+        return <TROverview key={refreshKey} />;
+      case "tr_tickets":
+        return <TRTickets key={refreshKey} />;
+      case "tr_queue":
+        return <TRQueue key={refreshKey} />;
+      case "tr_reports":
+        return <TRReports key={refreshKey} />;
+      case "tr_analytics":
+        return <TRAnalytics key={refreshKey} />;
       default:
         return <Overview key={refreshKey} dateRange={filters.dateRange} selectedCompanyId={selectedCompanyId} />;
     }
