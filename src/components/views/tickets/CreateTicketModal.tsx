@@ -51,10 +51,10 @@ export default function CreateTicketModal({ employees, currentEmployeeId, onSave
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-      <div className="w-full max-w-lg rounded-2xl p-6" style={{ background: '#16213e', border: '1px solid rgba(0,212,255,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="w-full max-w-lg rounded-2xl p-6" style={{ background: '#16213e', border: '1px solid rgba(136,81,244,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <TicketIcon size={18} style={{ color: '#00d4ff' }} />
+            <TicketIcon size={18} style={{ color: '#8851F4' }} />
             <h2 className="text-base font-semibold text-primary">New Ticket</h2>
           </div>
           <button onClick={onClose} className="text-secondary hover:text-primary"><X size={18} /></button>
@@ -71,7 +71,7 @@ export default function CreateTicketModal({ employees, currentEmployeeId, onSave
               required
               className="w-full px-3 py-2 rounded-lg text-sm text-primary outline-none"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-              onFocus={(e) => (e.target.style.borderColor = 'rgba(0,212,255,0.4)')}
+              onFocus={(e) => (e.target.style.borderColor = 'rgba(136,81,244,0.4)')}
               onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
             />
           </div>
@@ -86,7 +86,7 @@ export default function CreateTicketModal({ employees, currentEmployeeId, onSave
               rows={4}
               className="w-full px-3 py-2 rounded-lg text-sm text-primary outline-none resize-none"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-              onFocus={(e) => (e.target.style.borderColor = 'rgba(0,212,255,0.4)')}
+              onFocus={(e) => (e.target.style.borderColor = 'rgba(136,81,244,0.4)')}
               onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
             />
           </div>
@@ -138,7 +138,7 @@ export default function CreateTicketModal({ employees, currentEmployeeId, onSave
               onChange={(e) => setDeadline(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-sm text-primary outline-none"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }}
-              onFocus={(e) => (e.target.style.borderColor = 'rgba(0,212,255,0.4)')}
+              onFocus={(e) => (e.target.style.borderColor = 'rgba(136,81,244,0.4)')}
               onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
             />
           </div>
@@ -153,7 +153,7 @@ export default function CreateTicketModal({ employees, currentEmployeeId, onSave
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg text-sm text-secondary" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #7b2ff7, #00d4ff)' }}>
+            <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #7b2ff7, #8851F4)' }}>
               {saving ? 'Creating…' : 'Create Ticket'}
             </button>
           </div>
