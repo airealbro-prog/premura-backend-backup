@@ -15,6 +15,9 @@ create table if not exists clients (
   onboarding_date date,
   launch_date date,
   status text not null default 'active' check (status in ('active', 'paused', 'churned')),
+  -- Internal test accounts (ZTEST*, Test Solar, …): kept in the DB for testing
+  -- but excluded from all staff-facing reporting and the performance metrics.
+  is_test boolean not null default false,
   contact_email text,
   contact_phone text,
   notes text,

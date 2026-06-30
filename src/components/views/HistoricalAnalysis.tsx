@@ -28,7 +28,7 @@ export function HistoricalAnalysis({ filters, onFiltersChange }: HistoricalAnaly
   const [selectedClient, setSelectedClient] = useState<HistoricalClientRow | null>(null);
 
   useEffect(() => {
-    let query = supabase.from("clients").select("company_id, company_name");
+    let query = supabase.from("clients").select("company_id, company_name").eq("is_test", false);
     if (isClientUser && userRole?.company_id) {
       query = query.eq("company_id", userRole.company_id);
     }

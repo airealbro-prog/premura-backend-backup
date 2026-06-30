@@ -162,6 +162,7 @@ function App() {
     supabase
       .from("clients")
       .select("company_id, company_name")
+      .eq("is_test", false)
       .order("company_name")
       .then(({ data }) => {
         if (data) {

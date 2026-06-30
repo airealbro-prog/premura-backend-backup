@@ -47,7 +47,8 @@ export function useLeaderboard(filters: FilterState) {
       setLoading(true);
       setError(null);
 
-      let clientsQuery = supabase.from("clients").select("*").range(0, 49999);
+      // Exclude internal test accounts from all reporting.
+      let clientsQuery = supabase.from("clients").select("*").eq("is_test", false).range(0, 49999);
       let appointmentsQuery = supabase.from("appointments_new").select("*").range(0, 49999);
 
       if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
