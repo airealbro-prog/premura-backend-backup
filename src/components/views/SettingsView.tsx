@@ -4,6 +4,7 @@ import { useAuth, startImpersonation } from "@/lib/auth";
 import { EmployeeManagement } from "@/components/settings/EmployeeManagement";
 import { AgentStartDates } from "@/components/settings/AgentStartDates";
 import { relinkAppointmentsToClient, mergeDuplicateClients } from "@/lib/clientSync";
+import { isTestClient } from "@/lib/clientVisibility";
 import type { Client } from "@/types";
 import { motion } from "framer-motion";
 import {
@@ -99,6 +100,9 @@ export function SettingsView() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Test accounts (ZTEST*, Test Solar, …) are hidden from Client Management by
+  // default; admins can reveal them here to manage/unflag without leaving the app.
+  const [showTestClients, setShowTestClients] = useState(false);
 
   // Client user counts per company_id
   const [clientUserCounts, setClientUserCounts] = useState<Record<string, number>>({});
@@ -672,6 +676,17 @@ export function SettingsView() {
       {/* Tab Content */}
       {tab === "clients" ? (
         <>
+          {/* Show/hide internal test accounts */}
+          <label className="flex items-center gap-2 mb-3 text-sm text-muted-foreground cursor-pointer select-none w-fit">
+            <input
+              type="checkbox"
+              checked={showTestClients}
+              onChange={(e) => setShowTestClients(e.target.checked)}
+              className="accent-primary"
+            />
+            Show test accounts
+          </label>
+
           {/* Existing Clients */}
           <div className="glass-card overflow-x-auto mb-6">
             <div className="grid gap-2 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border bg-muted/30 min-w-[1000px]" style={{ gridTemplateColumns: "120px minmax(200px, 2fr) 70px 90px 120px 1fr 1fr 100px 40px" }}>
@@ -685,7 +700,7 @@ export function SettingsView() {
               <div className="text-center">Access</div>
               <div></div>
             </div>
-            {clients.map((client) => {
+            {(showTestClients ? clients : clients.filter((c) => !isTestClient(c))).map((client) => {
               const userCount = clientUserCounts[client.company_id] || 0;
               return (
                 <div key={client.id} className="grid gap-2 px-4 py-3 items-center border-b border-border min-w-[1000px]" style={{ gridTemplateColumns: "120px minmax(200px, 2fr) 70px 90px 120px 1fr 1fr 100px 40px" }}>

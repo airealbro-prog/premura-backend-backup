@@ -27,6 +27,7 @@ export function Leaderboard({ filters, onFiltersChange }: LeaderboardProps) {
     supabase
       .from("clients")
       .select("company_id, company_name")
+      .eq("is_test", false)
       .then(({ data }) => {
         if (data) {
           setClientOptions(data.map((d: Pick<Client, "company_id" | "company_name">) => ({ id: d.company_id, name: d.company_name })));

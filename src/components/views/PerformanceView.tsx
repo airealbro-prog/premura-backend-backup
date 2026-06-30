@@ -79,7 +79,7 @@ export function PerformanceView({ filters, onFiltersChange }: PerformanceViewPro
   }, [isClientUser, mode]);
 
   useEffect(() => {
-    const query = supabase.from("clients").select("company_id, company_name");
+    const query = supabase.from("clients").select("company_id, company_name").eq("is_test", false);
 
     // Client users only see their own company
     const finalQuery = isClientUser && userRole?.company_id

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { isValidAppointment, clientAchievement, getAchievementColor } from "@/lib/calculations";
+import { countsTowardPerformance } from "@/lib/clientVisibility";
 import { countBusinessDays, getEffectiveDateRange, getEarliestDate } from "@/lib/dateUtils";
 import { groupAppointmentsByClient } from "@/lib/clientMatch";
 import { syncClientsFromAppointments } from "@/lib/clientSync";
@@ -101,7 +102,8 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
     try {
       setError(null);
 
-      let clientsQuery = supabase.from("clients").select("*").range(0, 49999);
+      // Exclude internal test accounts (ZTEST*, Test Solar, …) from all reporting.
+      let clientsQuery = supabase.from("clients").select("*").eq("is_test", false).range(0, 49999);
       let appointmentsQuery = supabase.from("appointments_new").select("*").range(0, 49999);
 
       if ((userRole?.role === "client" || userRole?.role === ("client_admin" as string)) && userRole.company_id) {
@@ -140,7 +142,7 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
           const created = await syncClientsFromAppointments(allAppointments, fetchedClients);
           if (created > 0) {
             // Re-fetch clients to include newly created ones
-            const { data: refreshed } = await supabase.from("clients").select("*").range(0, 49999);
+            const { data: refreshed } = await supabase.from("clients").select("*").eq("is_test", false).range(0, 49999);
             if (refreshed) fetchedClients = refreshed;
           }
         } catch (err) {
@@ -178,8 +180,12 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
 
       setRangeAppts(allRangeAppts);
 
-      const achievements: number[] = [];
-      const clientSummaries = allClients.map((client) => {
+      // Build per-client summaries, then keep only the campaigns that should
+      // count toward the Call Center Performance metric / Campaign Health:
+      // active + non-test + launched-with-activity (≥1 valid appt in range).
+      // Churned, paused, not-launched and "0/X · no appts yet" rows are dropped
+      // so they stop dragging the aggregate achievement % toward 0.
+      const allSummaries = allClients.map((client) => {
         const companyAppts = groups.get(client.company_id) ?? [];
         const rangeAppts = companyAppts.filter((a) => {
           if (!a.created_at) return false;
@@ -188,12 +194,21 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
         });
         const validCount = rangeAppts.filter(isValidAppointment).length;
         const achievement = clientAchievement(validCount, client.seats_purchased, bizDays);
-        achievements.push(achievement);
-        return { name: client.company_name, achievement, appointments: validCount, seats: client.seats_purchased };
+        return {
+          name: client.company_name,
+          achievement,
+          appointments: validCount,
+          seats: client.seats_purchased,
+          eligible: countsTowardPerformance(client, validCount),
+        };
       });
 
-      const avgAchievement = achievements.length > 0
-        ? achievements.reduce((a, b) => a + b, 0) / achievements.length : 0;
+      const clientSummaries = allSummaries
+        .filter((s) => s.eligible)
+        .map(({ name, achievement, appointments, seats }) => ({ name, achievement, appointments, seats }));
+
+      const avgAchievement = clientSummaries.length > 0
+        ? clientSummaries.reduce((a, b) => a + b.achievement, 0) / clientSummaries.length : 0;
 
       const bookOutDays: number[] = [];
       for (const appt of allRangeAppts) {
@@ -211,7 +226,9 @@ export function Overview({ dateRange, selectedCompanyId = "" }: OverviewProps) {
         ? bookOutDays.reduce((a, b) => a + b, 0) / bookOutDays.length : 0;
 
       setStats({
-        totalClients: allClients.length,
+        // "Active Clients" = the launched, active campaigns counted by the metric,
+        // so the headline number matches the Campaign Health rows shown below.
+        totalClients: clientSummaries.length,
         totalActiveAgents: allActiveAgents.size,
         totalAppointments: allValidAppts.length,
         avgAchievement,
